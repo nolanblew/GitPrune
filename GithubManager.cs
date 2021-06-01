@@ -4,19 +4,21 @@ using Octokit;
 
 public class GithubManager
 {
-    public GithubManager()
+    public GithubManager(Settings settings)
     {
         _client = new GitHubClient(new ProductHeaderValue("GitPrune"));
-        _client.Credentials = new(Secrets.GithubToken);
+        _client.Credentials = new(settings.GithubToken);
+        _settings = settings;
     }
 
     readonly GitHubClient _client;
+    readonly Settings _settings;
 
     public async Task<PullRequest> FindClosedPullRequestFromBranchName(string branchName)
     {
-        var pullRequest = await _client.PullRequest.GetAllForRepository(Secrets.GithubOwner, Secrets.GithubRepo, new PullRequestRequest() {
+        var pullRequest = await _client.PullRequest.GetAllForRepository(_settings.GithubOwner, _settings.GithubRepo, new PullRequestRequest() {
             State = ItemStateFilter.Closed,
-            Head = $"{Secrets.GithubOwner}:{branchName}",
+            Head = $"{_settings.GithubOwner}:{branchName}",
         });
 
         return pullRequest?.FirstOrDefault();

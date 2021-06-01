@@ -9,16 +9,15 @@ bool isCommitting = !args.Contains("-i");
 
 const int _BULK_GITHUB_REQUESTS = 5;
 string[] _BRANCHES_TO_EXCLUDE = new string[] { "master", "main", "dev", "development" };
-var _githubManager = new GithubManager();
 
 int cursorRow = -1;
-
-Console.WriteLine("Finding Branches to Prune...");
 
 var workingDirectory = Directory.GetCurrentDirectory();
 if (args.Length > 0 && Directory.Exists(args[0])) {
     workingDirectory = args[0];
 }
+
+Console.WriteLine("Finding Branches to Prune...");
 
 if (!Repository.IsValid(workingDirectory)) {
     Console.WriteLine("You are not in a git directory.");
@@ -26,6 +25,29 @@ if (!Repository.IsValid(workingDirectory)) {
 }
 
 using var repo = new Repository(workingDirectory);
+
+// Check the config
+var settings = SettingsManager.GetSettings(repo.Info.Path);
+
+if (settings == null
+    || string.IsNullOrEmpty(settings.GithubToken)
+    || string.IsNullOrEmpty(settings.GithubOwner)
+    || string.IsNullOrEmpty(settings.GithubRepo)) {
+        Console.WriteLine("You have not intialized any settings file or the settings file is corrupt.");
+        Console.WriteLine("Attempting to create settings file...");
+
+        var settingsPath = SettingsManager.CreateEmptySettings(repo.Info.Path);
+        if (settingsPath.GlobalSettingsPath != null)
+            Console.WriteLine($"Global settings file created: {settingsPath.GlobalSettingsPath}");
+
+        if (settingsPath.LocalSettingsPath != null)
+            Console.WriteLine($"Local settings file created: {settingsPath.LocalSettingsPath}");
+
+        Console.WriteLine("Please open your settings file and fill out the settings before running git prune.");
+        return;
+    }
+
+var _githubManager = new GithubManager(settings);
 
 var localBranches = repo.Branches
     .Where(b => !b.IsRemote && !_BRANCHES_TO_EXCLUDE.Contains(b.FriendlyName))
