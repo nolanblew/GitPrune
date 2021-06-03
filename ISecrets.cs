@@ -1,17 +1,12 @@
 public interface ISecrets
 {
     /// <summary>
-    /// Github personal access token
+    /// The ClientId for GitHub
     /// </summary>
-    static string GithubToken { get; }
+    static string ClientId { get; }
 
     /// <summary>
-    /// The owner of the repo to access (ie 'owner' in https://github.com/{owner}/{repo}/)
+    /// The ClientSecret for GitHub
     /// </summary>
-    static string GithubOwner { get; }
-
-    /// <summary>
-    /// The repo name to access (ie 'repo' in https://github.com/{owner}/{repo}/)
-    /// </summary>
-    static string GithubRepo { get; }
+    static string ClientSecret { get; }
 }
