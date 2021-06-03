@@ -48,17 +48,14 @@ Currently the way secrets are embedded into the app is through as `Secrets` clas
 
 It is recommended to create a file named `Secrets.cs` as this is already excluded in `.gitignore` and will not be uploaded
 
-Note: you have to create `[my_personal_access_token]` through [Github](https://github.com/settings/tokens) with full repository access.
-
 Here is the template (replace the owner and repo with your own repository):
 
 #### Secrets.cs
 ```c#
 public class Secrets : ISecrets
 {
-    public static string GithubToken => "[my_personal_access_token]"; // Github Personal Access Token
-    public static string GithubOwner => "nolanblew"; // Github owner
-    public static string GithubRepo => "GitPrune"; // Github repository
+    public static string ClientId => "[client id for oauth]";
+    public static string ClientSecret => "[client secret for oauth]";
 }
 ```
 
