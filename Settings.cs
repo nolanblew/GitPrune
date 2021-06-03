@@ -1,52 +1,32 @@
-using System.IO;
 using System;
+using System.IO;
 using Newtonsoft.Json;
 
 public static class SettingsManager
 {
     const string _SETTINGS_NAME = "prune_config.json";
+    static readonly string _OAuthTokenConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _SETTINGS_NAME);
 
     static readonly JsonSerializerSettings _defaultJsonSettings = new JsonSerializerSettings
     {
         NullValueHandling = NullValueHandling.Ignore,
         MissingMemberHandling = MissingMemberHandling.Ignore,
     };
-    
+
     public static Settings GetSettings(string baseRepoPath)
     {
         var localSettingsPath = Path.Combine(baseRepoPath, _SETTINGS_NAME);
-        var globalSettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _SETTINGS_NAME);
 
         // Find the local settings path
         if (!File.Exists(localSettingsPath))
         {
-            if (File.Exists(Path.Combine(baseRepoPath, ".github", _SETTINGS_NAME)))
-                localSettingsPath = Path.Combine(baseRepoPath, ".github", _SETTINGS_NAME);
-            else
-                localSettingsPath = string.Empty;
+            return null;
         }
 
-        // Find the global settings path
-        if (!File.Exists(globalSettingsPath))
-            globalSettingsPath = string.Empty;
-        
-        var globalSettings = string.IsNullOrEmpty(globalSettingsPath)
-            ? null
-            : _ReadConfigFile(globalSettingsPath);
-
-        var localSettings = string.IsNullOrEmpty(localSettingsPath)
-            ? null
-            : _ReadConfigFile(localSettingsPath);
-
-        if (globalSettings == null)
-            return localSettings;
-        else if (localSettings == null)
-            return globalSettings;
-        else
-            return _GetCombinedSettings(localSettings, globalSettings);
+        return _ReadConfigFile(localSettingsPath);
     }
 
-    public static (string GlobalSettingsPath, string LocalSettingsPath) CreateEmptySettings(string baseRepoPath)
+    public static string CreateEmptySettings(string baseRepoPath)
     {
         var jsonSettings = new JsonSerializerSettings
         {
@@ -54,31 +34,49 @@ public static class SettingsManager
             Formatting = Formatting.Indented,
         };
 
-        var globalJson = JsonConvert.SerializeObject(new { GithubToken = "" }, jsonSettings);
-        var localJson = JsonConvert.SerializeObject(new { GithubOwner = "", GithubRepo = "" }, jsonSettings);
+        var json = JsonConvert.SerializeObject(
+            new Settings
+            {
+                BranchesToExclude = new [] { "master", "main", "development", "dev" }
+            },
+            jsonSettings);
 
         var localSettingsPath = Path.Combine(baseRepoPath, _SETTINGS_NAME);
-        var globalSettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _SETTINGS_NAME);
-
-        try
-        {
-            if (!File.Exists(globalSettingsPath))
-                File.WriteAllText(globalSettingsPath, globalJson);
-            else 
-                globalSettingsPath = null;
-        }
-        catch (IOException) {}
 
         try
         {
             if (!File.Exists(localSettingsPath))
-                File.WriteAllText(localSettingsPath, localJson);
-            else
-                localSettingsPath = null;
+            {
+                File.WriteAllText(localSettingsPath, json);
+            }
         }
         catch (IOException) {}
 
-        return (globalSettingsPath, localSettingsPath);
+        return localSettingsPath;
+    }
+
+    public static TokenSettings GetOauthToken()
+    {
+        if (!File.Exists(_OAuthTokenConfigPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(_OAuthTokenConfigPath);
+            return JsonConvert.DeserializeObject<TokenSettings>(json, _defaultJsonSettings);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public static void SaveOauthToken(string authToken)
+    {
+        var json = JsonConvert.SerializeObject(new TokenSettings { OAuthToken = authToken });
+        File.WriteAllText(_OAuthTokenConfigPath, json);
     }
 
     static Settings _ReadConfigFile(string configPath)
@@ -93,19 +91,17 @@ public static class SettingsManager
             return null;
         }
     }
-    
-    static Settings _GetCombinedSettings(Settings localSettings, Settings globalSettings) =>
-        new Settings
-        {
-            GithubToken = localSettings.GithubToken ?? globalSettings.GithubToken,
-            GithubOwner = localSettings.GithubOwner ?? globalSettings.GithubOwner,
-            GithubRepo = localSettings.GithubRepo ?? globalSettings.GithubRepo
-        };
 }
 
 public record Settings
 {
-    public string GithubToken { get; set; }
+    //public string GithubToken { get; set; }
     public string GithubOwner { get; set; }
     public string GithubRepo { get; set; }
+    public string[] BranchesToExclude { get; set; }
+}
+
+public record TokenSettings
+{
+    public string OAuthToken { get; set; }
 }
