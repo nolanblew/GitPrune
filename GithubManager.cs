@@ -32,6 +32,59 @@ public class GithubManager
         return pullRequest?.FirstOrDefault();
     }
 
+    public static Settings SetOwnerRepo(string remoteUrl, string baseRepoPath)
+        => SetOwnerRepo(new(), remoteUrl, baseRepoPath);
+
+    public static Settings SetOwnerRepo(Settings settings, string remoteUrl, string baseRepoPath)
+    {
+        // Extract the owner from the remote URL.
+        if (remoteUrl?.Contains("github.com") == false)
+        {
+            throw new ArgumentException("Malformed URL");
+        }
+
+        string owner;
+        string repo;
+
+        if (remoteUrl.StartsWith("git@github.com"))
+        {
+            // SSH URL
+            var url = remoteUrl.Substring(remoteUrl.IndexOf(":") + 1);
+            url = url.Substring(0, url.LastIndexOf(".git"));
+            var splitUrls = url.Split('/');
+
+            if (splitUrls.Length != 2)
+            {
+                throw new ArgumentException("Malformed URL");
+            }
+
+            owner = splitUrls[0];
+            repo = splitUrls[1];
+        }
+        else
+        {
+            // HTTP URL
+            var url = remoteUrl.Substring(remoteUrl.IndexOf("github.com/") + "github.com/".Length + 1);
+            url = url.Substring(0, url.LastIndexOf(".git"));
+            var splitUrls = url.Split('/');
+
+            if (splitUrls.Length != 2)
+            {
+                throw new ArgumentException("Malformed URL");
+            }
+
+            owner = splitUrls[0];
+            repo = splitUrls[1];
+        }
+
+        settings.GithubOwner = owner;
+        settings.GithubRepo = repo;
+
+        SettingsManager.SaveSettings(settings, baseRepoPath);
+
+        return settings;
+    }
+
     public async Task SetCredentialsAsync(bool forceReLogin = false)
     {
         var token = SettingsManager.GetOauthToken()?.OAuthToken;
