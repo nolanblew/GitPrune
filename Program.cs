@@ -33,7 +33,19 @@ var settings = SettingsManager.GetSettings(repo.Info.Path);
 
 if (settings == null
     || string.IsNullOrEmpty(settings.GithubOwner)
-    || string.IsNullOrEmpty(settings.GithubRepo)) {
+    || string.IsNullOrEmpty(settings.GithubRepo))
+{
+    try
+    {
+        if (settings == null) { settings = new(); }
+
+        settings = GithubManager.SetOwnerRepo(settings, repoRemote.Url, repo.Info.Path);
+        Console.WriteLine($"Set repo owner to {settings.GithubOwner} and repo to {settings.GithubRepo}.");
+        Console.WriteLine($"If this is not correct, edit the config at: {SettingsManager.GetSettingsPath(repo.Info.Path)}");
+        Console.WriteLine();
+    }
+    catch
+    {
         Console.WriteLine("You have not intialized any settings file or the settings file is corrupt.");
         Console.WriteLine("Attempting to create settings file...");
 
@@ -45,9 +57,20 @@ if (settings == null
         Console.WriteLine("Please open your settings file and fill out the settings before running git prune.");
         return;
     }
+}
 
-    var _githubManager = new GithubManager(settings);
+var _githubManager = new GithubManager(settings);
+
+try
+{
     await _githubManager.SetCredentialsAsync();
+}
+catch (Exception ex)
+{
+    Console.WriteLine("Unfortunately an error occured. Please try again.");
+    Console.WriteLine($"Error: {ex.Message}");
+    return;
+}
 
 var localBranches = repo.Branches
     .Where(b => !b.IsRemote && !_BRANCHES_TO_EXCLUDE.Contains(b.FriendlyName))

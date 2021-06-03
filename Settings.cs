@@ -13,9 +13,11 @@ public static class SettingsManager
         MissingMemberHandling = MissingMemberHandling.Ignore,
     };
 
+    public static string GetSettingsPath(string baseRepoPath) => Path.Combine(baseRepoPath, _SETTINGS_NAME);
+
     public static Settings GetSettings(string baseRepoPath)
     {
-        var localSettingsPath = Path.Combine(baseRepoPath, _SETTINGS_NAME);
+        var localSettingsPath = GetSettingsPath(baseRepoPath);
 
         // Find the local settings path
         if (!File.Exists(localSettingsPath))
@@ -24,6 +26,14 @@ public static class SettingsManager
         }
 
         return _ReadConfigFile(localSettingsPath);
+    }
+
+    public static void SaveSettings(Settings settings, string baseRepoPath)
+    {
+        var localSettingsPath = GetSettingsPath(baseRepoPath);
+
+        var json = JsonConvert.SerializeObject(settings);
+        File.WriteAllText(localSettingsPath, json);
     }
 
     public static string CreateEmptySettings(string baseRepoPath)
@@ -41,7 +51,7 @@ public static class SettingsManager
             },
             jsonSettings);
 
-        var localSettingsPath = Path.Combine(baseRepoPath, _SETTINGS_NAME);
+        var localSettingsPath = GetSettingsPath(baseRepoPath);
 
         try
         {
