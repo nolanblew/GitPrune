@@ -1,3 +1,6 @@
+#### Build status:
+![example branch parameter](https://github.com/nolanblew/GitPrune/actions/workflows/dotnet.yml/badge.svg?branch=main)
+
 # Git Prune
 This program is intended to be an alternative `prune` method to Git's [prune](https://git-scm.com/docs/git-prune) with the intent of removing local git branches that have already been merged into GitHub (currently only supports GitHub) by querying GitHub's API to look for matching PRs that have been merged.
 
