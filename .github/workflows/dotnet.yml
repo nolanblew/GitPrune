@@ -1,10 +1,6 @@
 name: .NET
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -20,11 +16,12 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Build Environment
-      run: DamianReeves/write-file-action
+      uses: DamianReeves/write-file-action@v1.0
       with:
         path: "Secrets.cs"
         contents: |
           public class Secrets { public static string ClientId => "{{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "{{ GH_PRUNE_CLIENT_SECRET }}"; }
+        write-mode: overwrite
     - name: Build Windows x64
       run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build Linux x64
