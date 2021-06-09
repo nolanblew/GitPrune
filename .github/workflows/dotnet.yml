@@ -1,6 +1,9 @@
 name: .NET
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   build:
@@ -20,17 +23,31 @@ jobs:
       with:
         path: "Secrets.cs"
         contents: |
-          public class Secrets { public static string ClientId => "{{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "{{ GH_PRUNE_CLIENT_SECRET }}"; }
+          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ GH_PRUNE_CLIENT_SECRET }}"; }
         write-mode: overwrite
+        
     - name: Build Windows x64
-      run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r win-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build Linux x64
-      run: dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r linux-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build OSX x64
-      run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
-    - name: Upload Artifacts
+      run: dotnet publish -r osx-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      
+    - name: Upload Windows Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: Compiled-Packages
+        name: Win-Compiled-Packages
         path: |
-          bin/Release/net5.0/**/publish
+          bin/Release/net5.0/win-x64/publish
+    - name: Upload Linux Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: Linux-Compiled-Packages
+        path: |
+          bin/Release/net5.0/linux-x64/publish
+    - name: Upload OSX Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: OSX-Compiled-Packages
+        path: |
+          bin/Release/net5.0/osx-x64/publish
