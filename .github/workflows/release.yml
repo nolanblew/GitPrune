@@ -41,8 +41,8 @@ jobs:
 
     - name: Upload Windows Release
       uses: bacongobbler/azure-blob-storage-upload@v1.2.0
-        with:
-          source_dir: 'publish_files'
-          container_name: 'git-prune'
-          connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
-          sync: true
+      with:
+        source_dir: 'publish_files'
+        container_name: 'git-prune'
+        connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
+        sync: true
