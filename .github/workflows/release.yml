@@ -41,9 +41,9 @@ jobs:
 
     - name: Zip Releases
       run: |
-        zip -r publish_files/gitprune-win-x64.zip bin/Release/net5.0/win-x64/publish
-        tar -czf publish_files/gitprune-linux-x64.tar.gz bin/Release/net5.0/linux-x64/publish
-        tar -czf publish_files/gitprune-osx-x64.tar.gz bin/Release/net5.0/osx-x64/publish
+        zip -rj publish_files/gitprune-win-x64.zip bin/Release/net5.0/win-x64/publish
+        tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net5.0/linux-x64/publish .
+        tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net5.0/osx-x64/publish .
 
     - name: Upload Windows Release
       uses: bacongobbler/azure-blob-storage-upload@v1.2.0
