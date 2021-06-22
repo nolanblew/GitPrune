@@ -1,0 +1,48 @@
+name: .NET
+
+on: workflow_dispatch
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Set Build Environment
+      uses: DamianReeves/write-file-action@v1.0
+      with:
+        path: "Secrets.cs"
+        contents: |
+          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; }
+        write-mode: overwrite
+        
+    - name: Build Windows x64
+      run: dotnet publish -r win-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+    - name: Build Linux x64
+      run: dotnet publish -r linux-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+    - name: Build OSX x64
+      run: dotnet publish -r osx-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      
+    - name: Setup Publish Directory
+      run: mkdir /publish_files
+
+    - name: Zip Releases
+      - run: |
+        zip -r publish_files/gitprune-win-x64.zip bin/Release/net5.0/win-x64/publish
+        tar -czf publish_files/gitprune-linux-x64.tar.gz bin/Release/net5.0/linux-x64/publish
+        tar -czf publish_files/gitprune-osx-x64.tar.gz bin/Release/net5.0/osx-x64/publish
+
+    - name: Upload Windows Release
+      uses: bacongobbler/azure-blob-storage-upload@v1.2.0
+        with:
+          source_dir: 'publish_files'
+          container_name: 'git-prune'
+          connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
+          sync: true
