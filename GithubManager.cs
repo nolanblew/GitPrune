@@ -91,6 +91,7 @@ public class GithubManager
 
         if (forceReLogin || string.IsNullOrWhiteSpace(token))
         {
+            Console.WriteLine("Please login through your browser. Be sure to authorize the any orginizations that you will use GitPrune on.");
             token = await _GetOauthToken();
         }
 
