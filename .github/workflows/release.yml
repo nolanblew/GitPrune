@@ -30,11 +30,11 @@ jobs:
         write-mode: overwrite
         
     - name: Build Windows x64
-      run: dotnet publish -r win-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build Linux x64
-      run: dotnet publish -r linux-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build OSX x64
-      run: dotnet publish -r osx-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
       
     - name: Setup Publish Directory
       run: mkdir publish_files
