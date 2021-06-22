@@ -67,7 +67,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
 
-    -name: Upload Windows Artifacts
+    - name: Upload Windows Artifacts
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ github.token }}
@@ -77,7 +77,7 @@ jobs:
         asset_name: gitprune-win-x64.zip
         asset_content_type: application/gzip
 
-    -name: Upload Linux Artifacts
+    - name: Upload Linux Artifacts
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ github.token }}
@@ -87,7 +87,7 @@ jobs:
         asset_name: gitprune-linux-x64.tar.gz
         asset_content_type: application/gzip
 
-    -name: Upload OSX Artifacts
+    - name: Upload OSX Artifacts
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ github.token }}
