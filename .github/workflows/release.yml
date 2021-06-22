@@ -34,7 +34,7 @@ jobs:
       run: mkdir /publish_files
 
     - name: Zip Releases
-      - run: |
+      run: |
         zip -r publish_files/gitprune-win-x64.zip bin/Release/net5.0/win-x64/publish
         tar -czf publish_files/gitprune-linux-x64.tar.gz bin/Release/net5.0/linux-x64/publish
         tar -czf publish_files/gitprune-osx-x64.tar.gz bin/Release/net5.0/osx-x64/publish
