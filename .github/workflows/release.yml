@@ -37,7 +37,9 @@ jobs:
       run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
       
     - name: Setup Publish Directory
-      run: mkdir publish_files
+      run: |
+        mkdir publish_files
+        cp install.sh publish_files/install.sh
 
     - name: Zip Releases
       run: |
