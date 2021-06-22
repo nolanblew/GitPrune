@@ -7,9 +7,24 @@ This program is intended to be an alternative `prune` method to Git's [prune](ht
 The key advantage of this is that it will work even when `Squash and Merge` is the default merge-style to a branch - something that Git's `prune` functionality cannot handle as the HEAD is not present in the base branch.
 
 ## Usage
-Note: For this to work on your branch, you will have to set your `Secrets` file, then compile and then publish (see instructions below) before use.
 
-####Basic usage
+### Installation
+**Windows**: Coming Soon
+
+**Linux / OSX / WSL**:
+Run:
+```bash
+curl -fsSL https://nolanblew.blob.core.windows.net/git-prune/install.sh | sudo bash
+```
+
+Note: You must have root priveleges OR be able to run as `sudo`
+
+Follow the instructions, or alternatively open your `~/.profile`, `~/.bashrc`, `~/.zshrc` (on Zsh) or `~/.cshrc` (on OXS) and add:
+```bash
+alias gprune=/usr/local/bin/git-prune/GitPrune
+```
+
+#### Basic usage
 
 Ensure you're current working directory is a `git` repository and matches the repository that was compiled in `Secrets`, or pass it in to the first argument
 
@@ -20,12 +35,12 @@ GitPrune.exe [Git Directory] [-i]
 
 **Linux**
 ```shell
-./GitPrune [Git Directory] [-i]
+gprune [Git Directory] [-i]
 ```
 
 **OSX**
 ```shell
-./GitPrune [Git Directory] [-i]
+gprune [Git Directory] [-i]
 ```
 
 #### Arguments
