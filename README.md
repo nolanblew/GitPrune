@@ -32,6 +32,9 @@ GitPrune.exe [Git Directory] [-i]
  - (Optional) `[Git Directory]`: This is the directory that contains the `git` repo you want to compare against. If not provided, your current working directory will be used
  - (Optional) `[-i]`: Use this to find out which branches _would_ be deleted without having the ability to delete them. Note: You will _always_ be prompted if you want to delete the local branches if this is not used. This will just not allow you to actually delete any branches.
 
+## Downloading
+You can find the latest packaged version in the Releases section. You can also find the latest branch in the `Actions` artifacts
+
 ## Compiling
 Requirements:
  - [Visual Studio Code](https://visualstudio.microsoft.com/) or [Visual Studio 2019](https://visualstudio.microsoft.com/) (VS Code was used for development, so there is no `.sln` file for Visual Studio 2019 to pick up on)
