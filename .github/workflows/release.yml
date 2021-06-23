@@ -1,12 +1,9 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release Version'
-        required: true
-        default: '1.0.0'
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   build:
@@ -55,44 +52,13 @@ jobs:
         connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
         sync: true
 
-    - name: Create Release Tag
-      uses: actions/create-release@v1
-      id: create_release
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
       with:
-        draft: false
-        prerelease: false
-        release_name: Git Prune v${{ github.events.inputs.version }}
-        tag_name: ${{ github.events.inputs.version }}
-        body_path: CHANGELOG.md
+        fail_on_unmatched_files: true
+        files: |
+          publish_files/gitprune-win-x64.zip
+          publish_files/gitprune-linux-x64.tar.gz
+          publish_files/gitprune-osx-x64.tar.gz
       env:
-        GITHUB_TOKEN: ${{ github.token }}
-
-    - name: Upload Windows Artifacts
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: publish_files/gitprune-win-x64.zip
-        asset_name: gitprune-win-x64.zip
-        asset_content_type: application/gzip
-
-    - name: Upload Linux Artifacts
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: publish_files/gitprune-linux-x64.tar.gz
-        asset_name: gitprune-linux-x64.tar.gz
-        asset_content_type: application/gzip
-
-    - name: Upload OSX Artifacts
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: publish_files/gitprune-osx-x64.tar.gz
-        asset_name: gitprune-osx-x64.tar.gz
-        asset_content_type: application/gzip
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
