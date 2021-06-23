@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 public static class SettingsManager
 {
     const string _SETTINGS_NAME = "prune_config.json";
-    static readonly string _OAuthTokenConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _SETTINGS_NAME);
+    static readonly string _OAuthTokenConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), _SETTINGS_NAME);
 
     static readonly JsonSerializerSettings _defaultJsonSettings = new JsonSerializerSettings
     {
