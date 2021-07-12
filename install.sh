@@ -20,6 +20,15 @@ case $platform in
              mkdir -p $directory
         fi
         tar xzf gitprune-linux-x64.tar.gz -C $directory
+
+        # Install browser extention if not installed
+        dpkg -s xdg-utils &> /dev/null
+
+        if [ $? -ne 0 ]; then
+            echo "Installing prerequisites..."
+            sudo apt install -y -qq xdg-utils
+        fi
+
         echo "" >> ~/.profile
         echo "alias gprune=$directory/GitPrune" >> ~/.profile
         source ~/.profile
