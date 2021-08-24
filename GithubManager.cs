@@ -64,7 +64,7 @@ public class GithubManager
         else
         {
             // HTTP URL
-            var url = remoteUrl.Substring(remoteUrl.IndexOf("github.com/") + "github.com/".Length + 1);
+            var url = remoteUrl.Substring(remoteUrl.IndexOf("github.com/") + "github.com/".Length);
             url = url.Substring(0, url.LastIndexOf(".git"));
             var splitUrls = url.Split('/');
 
