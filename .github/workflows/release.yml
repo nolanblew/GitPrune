@@ -16,6 +16,9 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Build Environment
@@ -27,11 +30,11 @@ jobs:
         write-mode: overwrite
         
     - name: Build Windows x64
-      run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build Linux x64
-      run: dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build OSX x64
-      run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
       
     - name: Setup Publish Directory
       run: |
@@ -51,6 +54,16 @@ jobs:
         container_name: 'git-prune'
         connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
         sync: true
+
+    - name: Update Version Number
+      uses: LadyCailin/azure-table-storage-upload@v1.0.0
+      with:
+        table_name: "gitprune"
+        partition_key: "version"
+        row_key: "stable"
+        data: "version_number={{ steps.get_version.outputs.VERSION }}"
+        if_exists: replace
+        connection_string: ${{ secrets.ACURETABLECONNECTIONSTRING }}
 
     - name: Create Release
       uses: softprops/action-gh-release@v1

@@ -77,6 +77,7 @@ public class Secrets : ISecrets
 {
     public static string ClientId => "[client id for oauth]";
     public static string ClientSecret => "[client secret for oauth]";
+    public static string AzureBlobTableKey => "[access key for Azure Table Blob that holds the version number]";
 }
 ```
 

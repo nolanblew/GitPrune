@@ -9,4 +9,6 @@ public interface ISecrets
     /// The ClientSecret for GitHub
     /// </summary>
     static string ClientSecret { get; }
+
+    static string AzureBlobTableKey { get; }
 }

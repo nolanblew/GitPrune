@@ -1,4 +1,5 @@
-﻿using LibGit2Sharp;
+﻿using GitPrune;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,6 +10,25 @@ bool isCommitting = !args.Contains("-i");
 
 const int _BULK_GITHUB_REQUESTS = 5;
 string[] _BRANCHES_TO_EXCLUDE = new string[] { "master", "main", "dev", "development" };
+
+// First check for updates
+var updater = new Updater();
+try
+{
+    if (updater.UpdateAvailable())
+    {
+        Console.WriteLine("Update available. Would you like to update?");
+        Console.Write("Y/n >");
+        if (Console.ReadKey().Key != ConsoleKey.N)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Updating... Please wait");
+        }
+    }
+}
+catch (Exception ex) {
+    Console.WriteLine("Error! " + ex.ToString());
+}
 
 int cursorRow = -1;
 
