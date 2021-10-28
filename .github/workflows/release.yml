@@ -61,9 +61,9 @@ jobs:
         table_name: "gitprune"
         partition_key: "version"
         row_key: "stable"
-        data: "version_number={{ steps.get_version.outputs.VERSION }}"
+        data: "version_number=\"{{ steps.get_version.outputs.VERSION }}\""
         if_exists: replace
-        connection_string: ${{ secrets.ACURETABLECONNECTIONSTRING }}
+        connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
