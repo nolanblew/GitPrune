@@ -46,7 +46,7 @@ try
     }
 }
 catch (Exception ex) {
-    Console.WriteLine("Error! " + ex.ToString());
+    Console.WriteLine("Error while checking for or completing the update! " + ex.ToString());
     return;
 }
 
