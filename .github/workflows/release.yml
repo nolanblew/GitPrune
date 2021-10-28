@@ -56,12 +56,12 @@ jobs:
         sync: true
 
     - name: Update Version Number
-      uses: nolanblew/azure-table-storage-upload@v1.0.2
+      uses: LadyCailin/azure-table-storage-upload@v1.0.1
       with:
         table_name: "gitprune"
         partition_key: "version"
         row_key: "stable"
-        data: "version_number={{ steps.get_version.outputs.VERSION }}"
+        data: "version_number=${{ steps.get_version.outputs.VERSION }}"
         if_exists: 'replace'
         extra_args: ''
         connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
