@@ -56,7 +56,7 @@ jobs:
         sync: true
 
     - name: Update Version Number
-      uses: nolanblew/azure-table-storage-upload@v1.0.0
+      uses: nolanblew/azure-table-storage-upload@v1.0.2
       with:
         table_name: "gitprune"
         partition_key: "version"
