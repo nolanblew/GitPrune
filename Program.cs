@@ -11,23 +11,43 @@ bool isCommitting = !args.Contains("-i");
 const int _BULK_GITHUB_REQUESTS = 5;
 string[] _BRANCHES_TO_EXCLUDE = new string[] { "master", "main", "dev", "development" };
 
-// First check for updates
 var updater = new Updater();
+
+// Get specific args
+// -v or --version
+if (args.Contains("-v") || args.Contains("--version"))
+{
+    Console.WriteLine("GitPrune v" + updater.AppVersion.ToString());
+    return;
+}
+
+// First check for updates
 try
 {
+    updater.CompleteUpdateIfNeeded();
+
     if (updater.UpdateAvailable())
     {
+
         Console.WriteLine("Update available. Would you like to update?");
         Console.Write("Y/n >");
-        if (Console.ReadKey().Key != ConsoleKey.N)
+        if (Console.ReadLine().ToLower().Trim() != "n")
         {
+            if (!System.OperatingSystem.IsWindows() && !RootChecker.IsRoot())
+            {
+                Console.WriteLine("You must be root to update. Please run as sudo or root.");
+                return;
+            }
+
             Console.WriteLine();
             Console.WriteLine("Updating... Please wait");
+            updater.Update();
         }
     }
 }
 catch (Exception ex) {
     Console.WriteLine("Error! " + ex.ToString());
+    return;
 }
 
 int cursorRow = -1;
