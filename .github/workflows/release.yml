@@ -62,7 +62,8 @@ jobs:
         partition_key: "version"
         row_key: "stable"
         data: "version_number={{ steps.get_version.outputs.VERSION }}"
-        if_exists: replace
+        if_exists: 'replace'
+        extra_args: ''
         connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
 
     - name: Create Release
