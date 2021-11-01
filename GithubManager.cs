@@ -32,7 +32,11 @@ public class GithubManager
 
             return pullRequest?.FirstOrDefault();
         }
-        catch (Exception ex) when (ex is CredentialsNotSetException || ex is ForbiddenException)
+        catch (Exception ex) when (
+            ex is CredentialsNotSetException
+         || ex is ForbiddenException
+         || ex is NotFoundException
+         || ex is UnauthorizedAccessException)
         {
             Console.WriteLine("There was an issue with your credentials. Please check that you have access to this repo.");
             Console.WriteLine("If you'd like to re-login, start GitPrune with the \"-r\" flag.");
