@@ -21,6 +21,29 @@ if (args.Contains("-v") || args.Contains("--version"))
     return;
 }
 
+// -r or --reset to reset the global config (delete it)
+if (args.Contains("-r") || args.Contains("--reset"))
+{
+    // Ask the user if they wish to reset the config
+    Console.WriteLine("Are you sure you want to clear the global config? You'll have to login again. (y/N)");
+    Console.Write(">> ");
+    var input = Console.ReadLine();
+    if (input.ToLower() == "y")
+    {
+        // Delete the config file
+        try {
+            SettingsManager.DeleteSettingsFile();
+            Console.WriteLine("Config file deleted successfully..");
+            Console.WriteLine();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error deleting config file: " + e.Message);
+            return;
+        }
+    }
+}
+
 // First check for updates
 try
 {
