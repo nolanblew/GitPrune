@@ -29,14 +29,18 @@ case $platform in
             sudo apt install -y -qq xdg-utils
         fi
 
-        echo "" >> ~/.profile
-        echo "alias gprune=$directory/GitPrune" >> ~/.profile
-        source ~/.profile
         echo "Cleaning Up..."
         rm gitprune-linux-x64.tar.gz
 
-        echo "Installed successfully. Please run the following command to add to your profile:"
-        echo " echo \"\" >> ~/.profile && echo \"alias gprune=$directory/GitPrune\" >> ~/.profile && source ~/.profile"
+        rcfile='~/.profile'
+
+        echo "LAST INSTALLATION STEP: Make sure to copy and paste the following line into your console:"
+        echo
+        echo "echo 'export PATH=\"\$PATH:$directory\"' >> $rcfile && source $rcfile"
+        
+        echo
+        echo "Installed successfully. To run Git Prune, just run: GitPrune (after running the above command)"
+        echo "Feel free to run the following to add 'gprune' to your alias: echo \"alias gprune='$directory/GitPrune'\" >> $rcfile && source $rcfile"
         ;;
     darwin)
         curl -O "https://nolanblew.blob.core.windows.net/git-prune/gitprune-osx-x64.tar.gz"
@@ -45,25 +49,26 @@ case $platform in
             mkdir -p /usr/local/bin/git-prune
         fi
         tar xzf gitprune-osx-x64.tar.gz -C /usr/local/bin/git-prune
-        if [[ -f "~/.zshrc" ]]; then
-            echo "" >> ~/.zshrc
-            echo "alias gprune=/usr/local/bin/git-prune/GitPrune" >> ~/.zshrc
-            source ~/.zshrc
-        else
-            echo "" >> ~/.cshrc
-            echo "alias gprune=/usr/local/bin/git-prune/GitPrune" >> ~/.cshrc
-            source ~/.cshrc
-        fi
         
         echo "Cleaning Up..."
         rm gitprune-osx-x64.tar.gz
 
         echo "Installed successfully. Please run the following command to add to your profile:"
+        
         if [[ -f "~/.zshrc" ]]; then
-            echo " echo \"\" >> ~/.profile && echo \"alias gprune=$directory/GitPrune\" >> ~/.zshrc && source ~/.zshrc"
+            rcfile="~/.zshrc"
         else
-            echo " echo \"\" >> ~/.profile && echo \"alias gprune=$directory/GitPrune\" >> ~/.cshrc && source ~/.cshrc"
+            rcfile="~/.cshrc"
         fi
+
+        echo "LAST INSTALLATION STEP: Make sure to copy and paste the following line into your console:"
+        echo
+        echo "echo 'export PATH=\"\$PATH:$directory\"' >> $rcfile && source $rcfile"
+        
+        echo
+        echo "Installed successfully. To run Git Prune, just run: GitPrune (after running the above command)"
+        echo "Feel free to run the following to add 'gprune' to your alias: echo \"alias gprune='$directory/GitPrune'\" >> $rcfile && source $rcfile"
+
         ;;
     mysys|windowsnt|cygwin)
         curl -O "https://nolanblew.blob.core.windows.net/git-prune/gitprune-win-x64.zip"
