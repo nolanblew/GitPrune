@@ -19,17 +19,27 @@ public class GithubManager
 
     public async Task<PullRequest> FindClosedPullRequestFromBranchName(string branchName)
     {
-        if (!_hasSetCredentials)
-        {
-            throw new CredentialsNotSetException();
+        try {
+            if (!_hasSetCredentials)
+            {
+                throw new CredentialsNotSetException();
+            }
+
+            var pullRequest = await _client.PullRequest.GetAllForRepository(_settings.GithubOwner, _settings.GithubRepo, new PullRequestRequest() {
+                State = ItemStateFilter.Closed,
+                Head = $"{_settings.GithubOwner}:{branchName}",
+            });
+
+            return pullRequest?.FirstOrDefault();
         }
-
-        var pullRequest = await _client.PullRequest.GetAllForRepository(_settings.GithubOwner, _settings.GithubRepo, new PullRequestRequest() {
-            State = ItemStateFilter.Closed,
-            Head = $"{_settings.GithubOwner}:{branchName}",
-        });
-
-        return pullRequest?.FirstOrDefault();
+        catch (Exception ex) when (ex is CredentialsNotSetException || ex is ForbiddenException)
+        {
+            Console.WriteLine("There was an issue with your credentials. Please check that you have access to this repo.");
+            Console.WriteLine("If you'd like to re-login, start GitPrune with the \"-r\" flag.");
+            Console.WriteLine("Exception: " + ex.Message);
+            Environment.Exit(1);
+            return null;
+        }
     }
 
     public static Settings SetOwnerRepo(string remoteUrl, string baseRepoPath)
