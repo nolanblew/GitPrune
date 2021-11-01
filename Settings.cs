@@ -89,6 +89,23 @@ public static class SettingsManager
         File.WriteAllText(_OAuthTokenConfigPath, json);
     }
 
+    public static void DeleteSettingsFile()
+    {
+        if (File.Exists(_OAuthTokenConfigPath))
+        {
+            File.Delete(_OAuthTokenConfigPath);
+        }
+    }
+
+    public static void DeleteSettingsFile(string baseRepoPath)
+    {
+        var localSettingsPath = GetSettingsPath(baseRepoPath);
+        if (File.Exists(localSettingsPath))
+        {
+            File.Delete(localSettingsPath);
+        }
+    }
+
     static Settings _ReadConfigFile(string configPath)
     {
         try
