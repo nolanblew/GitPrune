@@ -34,6 +34,11 @@ case $platform in
 
         rcfile='~/.profile'
 
+        # Check if the path has the $directory. If not add it to /etc/profile
+        if [[ :$PATH: != *:"$directory":* ]] ; then
+            echo "export PATH=\"\$PATH:$directory\"" >> /etc/profile
+        fi
+
         echo "LAST INSTALLATION STEP: Make sure to copy and paste the following line into your console:"
         echo
         echo "echo 'export PATH=\"\$PATH:$directory\"' >> $rcfile && source $rcfile"

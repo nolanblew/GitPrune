@@ -56,13 +56,6 @@ try
         Console.Write("Y/n >");
         if (Console.ReadLine().ToLower().Trim() != "n")
         {
-            if (!System.OperatingSystem.IsWindows() && !RootChecker.IsRoot())
-            {
-                Console.WriteLine("You must be root to update. Please run as sudo or root.");
-                Console.WriteLine("Note: You cannot use 'sudo gprune' as gprune is an alias. Ensure to use 'sudo GitPrune'");
-                return;
-            }
-
             Console.WriteLine();
             Console.WriteLine("Updating... Please wait");
             updater.Update();
