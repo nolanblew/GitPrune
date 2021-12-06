@@ -44,11 +44,6 @@ namespace GitPrune
                     System.Threading.Thread.Sleep(1000);
 
                     updateDirectory.Delete(true);
-                    
-                    // Tell the user that the update is complete, and they need to rerun the program.
-                    // This is because we are in sudo/admin mode, and we can't get the user's local settings file in admin/sudo mode.
-                    Console.WriteLine("Update complete. Please run gitprune again as your standard user.");
-                    Environment.Exit(0);
                 }
 
                 return;
@@ -173,18 +168,7 @@ namespace GitPrune
             // Run the GitPrune in the update folder
             gitPruneProcess.StartInfo.FileName = gitPruneFileInfo.FullName;
             gitPruneProcess.StartInfo.WorkingDirectory = updateDirectory.FullName;
-
-            if (System.OperatingSystem.IsWindows())
-            {
-                // On windows, launch the process in admin mode
-                gitPruneProcess.StartInfo.UseShellExecute = true;
-                gitPruneProcess.StartInfo.Verb = "runas";
-            }
-            else
-            {
-                // On other platforms, we should already be in sudo mode to get to this point so just launch the updater
-                gitPruneProcess.StartInfo.UseShellExecute = false;
-            }
+            gitPruneProcess.StartInfo.UseShellExecute = false;
 
             gitPruneProcess.Start();
             Environment.Exit(0);

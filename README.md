@@ -14,7 +14,7 @@ The key advantage of this is that it will work even when `Squash and Merge` is t
 **Linux / OSX / WSL**:
 Run:
 ```bash
-curl -fsSL https://nolanblew.blob.core.windows.net/git-prune/install.sh | sudo bash
+curl -fsSL https://nolanblew.blob.core.windows.net/git-prune/install.sh | bash
 ```
 
 Note: You must have root priveleges OR be able to run as `sudo`
