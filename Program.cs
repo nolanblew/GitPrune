@@ -51,7 +51,6 @@ try
 
     if (updater.UpdateAvailable())
     {
-
         Console.WriteLine("Update available. Would you like to update?");
         Console.Write("Y/n >");
         if (Console.ReadLine().ToLower().Trim() != "n")
