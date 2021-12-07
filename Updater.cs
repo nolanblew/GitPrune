@@ -222,11 +222,45 @@ namespace GitPrune
 
                 gzipStream.Close();
                 inStream.Close();
+
+                // Set permissions of files to executable
+                SetPermissions(targetDirectory, FilePermissions.Execute, true);
             }
             else
             {
                 throw new Exception("Unsupported file type.");
             }
+        }
+
+        void SetPermissions(string item, FilePermissions permissions, bool recursive = false) {
+            if (System.OperatingSystem.IsWindows()) {
+                // Permissions should already be set on Windows
+                return;
+            }
+            else
+            {
+                // Build permission string
+                var permissionString = ((int)permissions).ToString();
+                using var process = new Process {
+                    StartInfo = new ProcessStartInfo {
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        FileName = "/bin/bash",
+                        Arguments = $"-c \"chmod {permissionString} {item} {(recursive ? " -R" : "")}\"",
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+            }
+        }
+
+        enum FilePermissions {
+            Nona = 000,
+            ReadOnly = 444,
+            ReadWrite = 666,
+            Execute = 755,
         }
     }
 }
