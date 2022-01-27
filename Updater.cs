@@ -23,9 +23,9 @@ namespace GitPrune
         const string _RELEASE_DIRECTORY =
 
 #if BETA
-            "gitprune-beta";
+            "git-prune-beta";
 #else
-            "gitprune";
+            "git-prune";
 #endif
 
         public Updater()
@@ -33,7 +33,7 @@ namespace GitPrune
             _tableClient = new TableServiceClient(
                 new Uri("https://nolanblew.table.core.windows.net/"),
                 new TableSharedKeyCredential("nolanblew", Secrets.AzureBlobTableKey))
-                .GetTableClient(_RELEASE_DIRECTORY);
+                .GetTableClient("gitprune");
         }
 
         public Version AppVersion => GetType().Assembly.GetName().Version;

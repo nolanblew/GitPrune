@@ -51,7 +51,7 @@ jobs:
       uses: bacongobbler/azure-blob-storage-upload@v1.2.0
       with:
         source_dir: 'publish_files'
-        container_name: 'gitprune-beta'
+        container_name: 'git-prune-beta'
         connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
         sync: true
 
@@ -65,3 +65,4 @@ jobs:
         if_exists: 'replace'
         extra_args: ''
         connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
+
