@@ -39,7 +39,7 @@ jobs:
     - name: Setup Publish Directory
       run: |
         mkdir publish_files
-        cp install.sh publish_files/install.sh
+        cp install-beta.sh publish_files/install.sh
 
     - name: Zip Releases
       run: |
