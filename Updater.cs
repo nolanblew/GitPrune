@@ -15,9 +15,17 @@ namespace GitPrune
         const string _RELEASE_RING =
 
 #if BETA
-            "stable";
-#else
             "beta";
+#else
+            "stable";
+#endif
+
+        const string _RELEASE_DIRECTORY =
+
+#if BETA
+            "git-prune-beta";
+#else
+            "git-prune";
 #endif
 
         public Updater()
