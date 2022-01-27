@@ -1,0 +1,67 @@
+name: Release Beta
+
+on:
+  push:
+    tags:
+      - 'b*.*.*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/b}
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Set Build Environment
+      uses: DamianReeves/write-file-action@v1.0
+      with:
+        path: "Secrets.cs"
+        contents: |
+          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; }
+        write-mode: overwrite
+        
+    - name: Build Windows x64
+      run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+    - name: Build Linux x64
+      run: dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+    - name: Build OSX x64
+      run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      
+    - name: Setup Publish Directory
+      run: |
+        mkdir publish_files
+        cp install.sh publish_files/install.sh
+
+    - name: Zip Releases
+      run: |
+        zip -rj publish_files/gitprune-win-x64.zip bin/Release/net5.0/win-x64/publish
+        tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net5.0/linux-x64/publish .
+        tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net5.0/osx-x64/publish .
+
+    - name: Upload Windows Release
+      uses: bacongobbler/azure-blob-storage-upload@v1.2.0
+      with:
+        source_dir: 'publish_files'
+        container_name: 'git-prune-beta'
+        connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
+        sync: true
+
+    - name: Update Version Number
+      uses: LadyCailin/azure-table-storage-upload@v1.0.1
+      with:
+        table_name: "gitprune"
+        partition_key: "version"
+        row_key: "beta"
+        data: "version_number=${{ steps.get_version.outputs.VERSION }}"
+        if_exists: 'replace'
+        extra_args: ''
+        connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
