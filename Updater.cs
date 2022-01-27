@@ -12,7 +12,13 @@ namespace GitPrune
 {
     public class Updater
     {
-        const string _RELEASE_RING = "stable";
+        const string _RELEASE_RING =
+
+#if BETA
+            "stable";
+#else
+            "beta";
+#endif
 
         public Updater()
         {
