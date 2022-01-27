@@ -17,6 +17,10 @@ var updater = new Updater();
 // -v or --version
 if (args.Contains("-v") || args.Contains("--version"))
 {
+#if BETA
+    Console.WriteLine("BETA VERSION");
+#endif
+
     Console.WriteLine("GitPrune v" + updater.AppVersion.ToString());
     return;
 }

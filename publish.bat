@@ -8,8 +8,15 @@ IF "%VERSION%" == "" (
   SET VERSION="999.0.0"
 )
 
+IF "%VERSION:~-1%" neq "b" (
+  SET BETA="/p:IsBeta=false"
+) ELSE (
+  SET BETA="/p:IsBeta=true"
+  SET VERSION=%VERSION:~0,-1%
+)
+
 ECHO "Publishing version %VERSION%"
 
-dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="%VERSION%" -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
-dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="%VERSION%" -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
-dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="%VERSION%" -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="%VERSION%" %BETA% -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="%VERSION%" %BETA% -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="%VERSION%" %BETA% -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
