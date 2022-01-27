@@ -86,9 +86,19 @@ if (!Repository.IsValid(workingDirectory)) {
 
 using var repo = new Repository(workingDirectory);
 
+// TODO: Remove after a few versions:
+// Migrate the settings file if it exists in the main directory
+MigrationHelper.MoveSettingsFile(workingDirectory);
+
+// The gitDirectory is the directory where the .git folder is located for the settings
+var gitDirectory = repo.Info.Path;
+if (!gitDirectory.EndsWith(".git") &&  Directory.Exists(Path.Combine(gitDirectory, ".git"))) {
+    gitDirectory = Path.Combine(gitDirectory, ".git");
+}
+
 // Check the config
 var repoRemote = repo.Network.Remotes.FirstOrDefault();
-var settings = SettingsManager.GetSettings(repo.Info.Path);
+var settings = SettingsManager.GetSettings(gitDirectory);
 
 
 if (settings == null
@@ -99,9 +109,9 @@ if (settings == null
     {
         if (settings == null) { settings = new(); }
 
-        settings = GithubManager.SetOwnerRepo(settings, repoRemote.Url, repo.Info.Path);
+        settings = GithubManager.SetOwnerRepo(settings, repoRemote.Url, gitDirectory);
         Console.WriteLine($"Set repo owner to {settings.GithubOwner} and repo to {settings.GithubRepo}.");
-        Console.WriteLine($"If this is not correct, edit the config at: {SettingsManager.GetSettingsPath(repo.Info.Path)}");
+        Console.WriteLine($"If this is not correct, edit the config at: {SettingsManager.GetSettingsPath(gitDirectory)}");
         Console.WriteLine();
     }
     catch
@@ -109,7 +119,7 @@ if (settings == null
         Console.WriteLine("You have not intialized any settings file or the settings file is corrupt.");
         Console.WriteLine("Attempting to create settings file...");
 
-        var settingsPath = SettingsManager.CreateEmptySettings(repo.Info.Path);
+        var settingsPath = SettingsManager.CreateEmptySettings(gitDirectory);
 
         if (settingsPath != null)
             Console.WriteLine($"Local settings file created: {settingsPath}");
