@@ -88,7 +88,7 @@ using var repo = new Repository(workingDirectory);
 
 // TODO: Remove after a few versions:
 // Migrate the settings file if it exists in the main directory
-MigrationHelper.MoveSettingsFile(workingDirectory);
+MigrationHelper.DeleteSettingsFile(workingDirectory);
 
 // The gitDirectory is the directory where the .git folder is located for the settings
 var gitDirectory = repo.Info.Path;

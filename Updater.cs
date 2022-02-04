@@ -137,13 +137,13 @@ namespace GitPrune
             // Download the zip file based on the platform
             var zipUrl = "";
             if (System.OperatingSystem.IsWindows()) {
-                zipUrl = "https://nolanblew.blob.core.windows.net/git-prune/gitprune-win-x64.zip";
+                zipUrl = $"https://nolanblew.blob.core.windows.net/{_RELEASE_DIRECTORY}/gitprune-win-x64.zip";
                 tempFile += ".zip";
             } else if (System.OperatingSystem.IsMacOS()) {
-                zipUrl = "https://nolanblew.blob.core.windows.net/git-prune/gitprune-osx-x64.tar.gz";
+                zipUrl = $"https://nolanblew.blob.core.windows.net/{_RELEASE_DIRECTORY}/gitprune-osx-x64.tar.gz";
                 tempFile += ".tar.gz";
             } else if (System.OperatingSystem.IsLinux()) {
-                zipUrl = "https://nolanblew.blob.core.windows.net/git-prune/gitprune-linux-x64.tar.gz";
+                zipUrl = $"https://nolanblew.blob.core.windows.net/{_RELEASE_DIRECTORY}/gitprune-linux-x64.tar.gz";
                 tempFile += ".tar.gz";
             } else {
                 throw new Exception("Unsupported platform.");
