@@ -21,7 +21,7 @@ Note: You must have root priveleges OR be able to run as `sudo`
 
 Follow the instructions, or alternatively open your `~/.profile`, `~/.bashrc`, `~/.zshrc` (on Zsh) or `~/.cshrc` (on OXS) and add:
 ```bash
-alias gprune=/usr/local/bin/git-prune/GitPrune
+alias gprune=~/.git-prune/GitPrune
 ```
 
 #### Basic usage
