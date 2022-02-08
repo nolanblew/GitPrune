@@ -262,7 +262,7 @@ namespace GitPrune
                         CreateNoWindow = true,
                         WindowStyle = ProcessWindowStyle.Hidden,
                         FileName = "/bin/bash",
-                        Arguments = $"-c \"chmod {permissionString} {item} {(recursive ? " -R" : "")}\"",
+                        Arguments = $"-c \"chmod {(recursive ? " -R" : "")} {permissionString} {item}\"",
                     }
                 };
                 process.Start();
