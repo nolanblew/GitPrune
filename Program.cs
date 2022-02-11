@@ -193,10 +193,24 @@ if (isCommitting)
     var result = Console.ReadLine().ToLower().Trim();
     if (result == "y" || result == "yes")
     {
-        foreach(var branch in branchesToDelete)
-            repo.Branches.Remove(branch);
+        // Check if we are currently in one of the branches to delete
+        if (localBranches.Any(b => b.FriendlyName == repo.Head.FriendlyName))
+        {
+            Console.WriteLine("You are currently on one of the branches to delete. Please switch to another branch and run Git Prune again.");
+            return;
+        }
+        
+        try
+        {
+            foreach(var branch in branchesToDelete)
+                repo.Branches.Remove(branch);
 
-        Console.WriteLine($"Deleted {branchesToDelete.Count()} branches.");
+            Console.WriteLine($"Deleted {branchesToDelete.Count()} branches.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occured while deleting branches: {ex.Message}");
+        }
     }
 }
 
