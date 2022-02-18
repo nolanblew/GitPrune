@@ -214,7 +214,7 @@ if (isCommitting)
     if (result == "y" || result == "yes")
     {
         // Check if we are currently in one of the branches to delete
-        if (localBranches.Any(b => b.FriendlyName == repo.Head.FriendlyName))
+        if (branchesToDelete.Any(b => b.FriendlyName == repo.Head.FriendlyName))
         {
             Console.WriteLine("You are currently on one of the branches to delete. Please switch to another branch and run Git Prune again.");
             analytics.Flush();
