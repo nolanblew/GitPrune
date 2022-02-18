@@ -11,4 +11,6 @@ public interface ISecrets
     static string ClientSecret { get; }
 
     static string AzureBlobTableKey { get; }
+
+    static string AnalyticsInstrumentationKey { get; }
 }

@@ -12,6 +12,9 @@ const int _BULK_GITHUB_REQUESTS = 5;
 string[] _BRANCHES_TO_EXCLUDE = new string[] { "master", "main", "dev", "development" };
 
 var updater = new Updater();
+var analytics = new AnalyticHelper(updater.AppVersion.ToString(), Updater.RELEASE_RING);
+
+analytics.TrackUseGitPrune();
 
 // Get specific args
 // -v or --version
@@ -22,6 +25,8 @@ if (args.Contains("-v") || args.Contains("--version"))
 #endif
 
     Console.WriteLine("GitPrune v" + updater.AppVersion.ToString());
+    analytics.TrackCheckVersion();
+    analytics.Flush();
     return;
 }
 
@@ -39,10 +44,13 @@ if (args.Contains("-r") || args.Contains("--reset"))
             SettingsManager.DeleteSettingsFile();
             Console.WriteLine("Config file deleted successfully..");
             Console.WriteLine();
+            analytics.TrackResetConfig();
         }
         catch (Exception e)
         {
             Console.WriteLine("Error deleting config file: " + e.Message);
+            analytics.TrackException(e);
+            analytics.Flush();
             return;
         }
     }
@@ -61,12 +69,18 @@ try
         {
             Console.WriteLine();
             Console.WriteLine("Updating... Please wait");
+            analytics.TrackUpdateAvailable(true);
             updater.Update();
+        }
+        else
+        {
+            analytics.TrackUpdateAvailable(false);
         }
     }
 }
 catch (Exception ex) {
     Console.WriteLine("Error while checking for or completing the update! " + ex.ToString());
+    analytics.Flush();
     return;
 }
 
@@ -81,6 +95,7 @@ Console.WriteLine("Finding Branches to Prune...");
 
 if (!Repository.IsValid(workingDirectory)) {
     Console.WriteLine("You are not in a git directory.");
+    analytics.Flush();
     return;
 }
 
@@ -125,6 +140,7 @@ if (settings == null
             Console.WriteLine($"Local settings file created: {settingsPath}");
 
         Console.WriteLine("Please open your settings file and fill out the settings before running git prune.");
+        analytics.Flush();
         return;
     }
 }
@@ -139,6 +155,7 @@ catch (Exception ex)
 {
     Console.WriteLine("Unfortunately an error occured. Please try again.");
     Console.WriteLine($"Error: {ex.Message}");
+    analytics.Flush();
     return;
 }
 
@@ -169,9 +186,12 @@ WriteProgress($"\rProgress: {localBranches.Length}/{localBranches.Length}");
 Console.WriteLine();
 Console.WriteLine("Done.");
 
+analytics.TrackDeletableBranches(branchesToDelete.Count);
+
 if (branchesToDelete.Count == 0)
 {
     Console.WriteLine("You have no local branches associated with a merged PR. Congrats!");
+    analytics.Flush();
     return;
 }
 
@@ -197,21 +217,28 @@ if (isCommitting)
         if (localBranches.Any(b => b.FriendlyName == repo.Head.FriendlyName))
         {
             Console.WriteLine("You are currently on one of the branches to delete. Please switch to another branch and run Git Prune again.");
+            analytics.Flush();
             return;
         }
         
         try
         {
             foreach(var branch in branchesToDelete)
+            {
                 repo.Branches.Remove(branch);
+                analytics.TrackDeleteBranch();
+            }
 
             Console.WriteLine($"Deleted {branchesToDelete.Count()} branches.");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"An error occured while deleting branches: {ex.Message}");
+            analytics.TrackException(ex);
         }
     }
+
+    analytics.Flush();
 }
 
 void WriteProgress(string message)

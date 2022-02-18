@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="12.2.1" />
     <PackageReference Include="LibGit2Sharp" Version="0.27.0-preview-0096" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.20.0" />
     <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
     <PackageReference Include="Microsoft.Azure.Storage.Common" Version="11.2.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />

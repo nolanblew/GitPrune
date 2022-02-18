@@ -12,7 +12,7 @@ namespace GitPrune
 {
     public class Updater
     {
-        const string _RELEASE_RING =
+        public const string RELEASE_RING =
 
 #if BETA
             "beta";
@@ -119,7 +119,7 @@ namespace GitPrune
 
         public bool UpdateAvailable()
         {
-            var result = _tableClient.Query<TableEntity>(e => e.PartitionKey == "version" && e.RowKey == _RELEASE_RING);
+            var result = _tableClient.Query<TableEntity>(e => e.PartitionKey == "version" && e.RowKey == RELEASE_RING);
 
             var versionResult = result.FirstOrDefault();
             if (versionResult == null) { throw new Exception("Could not query update table."); }
