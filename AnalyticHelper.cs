@@ -54,6 +54,8 @@ public class AnalyticHelper
 
     public void TrackException(Exception ex)
     {
+        if (ex == null) return;
+
         try
         {
             _telemetryClient.TrackException(ex);
