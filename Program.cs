@@ -14,6 +14,17 @@ string[] _BRANCHES_TO_EXCLUDE = new string[] { "master", "main", "dev", "develop
 var updater = new Updater();
 var analytics = new AnalyticHelper(updater.AppVersion.ToString(), Updater.RELEASE_RING);
 
+// Fropm this point on, catch all unhandled exceptions and log them
+AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+{
+    try
+    {
+        analytics.TrackException(e.ExceptionObject as Exception);
+    } catch { }
+
+    Console.WriteLine(e.ExceptionObject);
+};
+
 analytics.TrackUseGitPrune();
 Console.CancelKeyPress += (sender, e) => {
     e.Cancel = true;
