@@ -15,6 +15,11 @@ var updater = new Updater();
 var analytics = new AnalyticHelper(updater.AppVersion.ToString(), Updater.RELEASE_RING);
 
 analytics.TrackUseGitPrune();
+Console.CancelKeyPress += (sender, e) => {
+    e.Cancel = true;
+    analytics.Flush();
+    Environment.Exit(0);
+};
 
 // Get specific args
 // -v or --version

@@ -40,8 +40,6 @@ public class AnalyticHelper
 
     public void TrackDeleteBranch() => _TrackEvent(Keys.DELETE_BRANCH);
 
-    public void TrackUpdateApp(string oldVersion, string newVersion) => _TrackEvent(Keys.UPDATE_APP, new Dictionary<string, string> { { "old_version", oldVersion }, { "new_version", newVersion } });
-
     public void TrackUpdateAvailable(bool choseToUpdate) => _TrackEvent(Keys.UPDATE_AVAILABLE, new Dictionary<string, string> { { "chose_to_update", choseToUpdate.ToString() } });
 
     public void TrackCheckVersion() => _TrackEvent(Keys.CHECK_VERSION);
@@ -64,7 +62,7 @@ public class AnalyticHelper
     {
         _telemetryClient.Flush();
         // Give 200ms for the flush to complete
-        System.Threading.Thread.Sleep(800);
+        System.Threading.Thread.Sleep(200);
     }
 
     void _TrackEvent(string key, Dictionary<string, string> properties = null)
