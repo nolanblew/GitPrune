@@ -47,12 +47,13 @@ jobs:
         tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net8.0/linux-x64/publish .
         tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net8.0/osx-x64/publish .
 
-    - name: Upload Windows Release
+    - name: Upload Releases
       uses: bacongobbler/azure-blob-storage-upload@v1.2.0
       with:
         source_dir: 'publish_files'
         container_name: 'git-prune'
         connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
+        extra_args: '--overwrite'
         sync: true
 
     - name: Update Version Number
