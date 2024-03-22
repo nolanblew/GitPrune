@@ -95,9 +95,16 @@ try
     }
 }
 catch (Exception ex) {
-    Console.WriteLine("Error while checking for or completing the update! " + ex.ToString());
+    var errorTrace = 
+#if BETA
+        ex.ToString();
+#else
+        string.Empty;
+#endif
+
+    Console.WriteLine("Error while checking for or completing the update! " + errorTrace);
+    analytics.TrackException(ex);
     analytics.Flush();
-    return;
 }
 
 int cursorRow = -1;
