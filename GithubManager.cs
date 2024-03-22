@@ -154,9 +154,5 @@ public class GithubManager
         public CredentialsNotSetException(string message, Exception innerException) : base(message, innerException)
         {
         }
-
-        protected CredentialsNotSetException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
     }
 }

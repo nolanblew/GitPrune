@@ -16,7 +16,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.x
+        dotnet-version: 8.0.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Build Environment
@@ -24,7 +24,7 @@ jobs:
       with:
         path: "Secrets.cs"
         contents: |
-          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationKey => "${{ secrets.ANALYTICS_KEY }}"; }
+          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationConnectionString => "${{ secrets.ANALYTICS_CONNECTION_STRING }}"; }
         write-mode: overwrite
         
     - name: Build Windows x64
@@ -39,16 +39,16 @@ jobs:
       with:
         name: Win-Compiled-Packages
         path: |
-          bin/Release/net5.0/win-x64/publish
+          bin/Release/net8.0/win-x64/publish
     - name: Upload Linux Artifacts
       uses: actions/upload-artifact@v2
       with:
         name: Linux-Compiled-Packages
         path: |
-          bin/Release/net5.0/linux-x64/publish
+          bin/Release/net8.0/linux-x64/publish
     - name: Upload OSX Artifacts
       uses: actions/upload-artifact@v2
       with:
         name: OSX-Compiled-Packages
         path: |
-          bin/Release/net5.0/osx-x64/publish
+          bin/Release/net8.0/osx-x64/publish

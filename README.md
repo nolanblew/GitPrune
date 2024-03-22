@@ -55,7 +55,7 @@ Requirements:
  - [Visual Studio Code](https://visualstudio.microsoft.com/) or [Visual Studio 2019](https://visualstudio.microsoft.com/) (VS Code was used for development, so there is no `.sln` file for Visual Studio 2019 to pick up on)
  - Windows, Mac or Linux (x64)
  - [Git](https://git-scm.com/downloads) installed on your machine
- - [.NET 5 SDK](https://dotnet.microsoft.com/download/dotnet/5.0)
+ - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 Note: Currently there is only a publishing script for `.bat` (Windows). Feel free to add support for other platforms
 
@@ -84,4 +84,4 @@ public class Secrets : ISecrets
 ## Publishing
 To publish, make sure you have the `dotnet` directory in your environemnt path. Then in the root directory of the repository run `publish.bat` (Widnows only) to generate the packages.
 
-These packages are self-contained, meaning they include .NET 5 and .NET 5 Mono for the respective platform. This results in filesizes ~64MB, but ensures it will run on systems that don't have .NET or mono installed. You can also remove the `--self-contained` to remove the .NET runtime, making the executables ~2MB but requiring the runtime to be installed on the computer you are using.
+These packages are self-contained, meaning they include .NET 8 and .NET 8 Mono for the respective platform. This results in filesizes ~64MB, but ensures it will run on systems that don't have .NET or mono installed. You can also remove the `--self-contained` to remove the .NET runtime, making the executables ~2MB but requiring the runtime to be installed on the computer you are using.

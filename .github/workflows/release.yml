@@ -15,7 +15,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.x
+        dotnet-version: 8.0.x
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
@@ -26,7 +26,7 @@ jobs:
       with:
         path: "Secrets.cs"
         contents: |
-          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationKey => "${{ secrets.ANALYTICS_KEY }}"; }
+          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationConnectionString => "${{ secrets.ANALYTICS_CONNECTION_STRING }}"; }
         write-mode: overwrite
         
     - name: Build Windows x64
@@ -43,16 +43,17 @@ jobs:
 
     - name: Zip Releases
       run: |
-        zip -rj publish_files/gitprune-win-x64.zip bin/Release/net5.0/win-x64/publish
-        tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net5.0/linux-x64/publish .
-        tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net5.0/osx-x64/publish .
+        zip -rj publish_files/gitprune-win-x64.zip bin/Release/net8.0/win-x64/publish
+        tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net8.0/linux-x64/publish .
+        tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net8.0/osx-x64/publish .
 
-    - name: Upload Windows Release
+    - name: Upload Releases
       uses: bacongobbler/azure-blob-storage-upload@v1.2.0
       with:
         source_dir: 'publish_files'
         container_name: 'git-prune'
         connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
+        extra_args: '--overwrite'
         sync: true
 
     - name: Update Version Number

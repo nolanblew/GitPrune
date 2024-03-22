@@ -86,7 +86,7 @@ try
             Console.WriteLine();
             Console.WriteLine("Updating... Please wait");
             analytics.TrackUpdateAvailable(true);
-            updater.Update();
+            await updater.Update();
         }
         else
         {
@@ -95,9 +95,16 @@ try
     }
 }
 catch (Exception ex) {
-    Console.WriteLine("Error while checking for or completing the update! " + ex.ToString());
+    var errorTrace = 
+#if BETA
+        ex.ToString();
+#else
+        string.Empty;
+#endif
+
+    Console.WriteLine("Error while checking for or completing the update. Please make sure you are online next time. " + errorTrace);
+    analytics.TrackException(ex);
     analytics.Flush();
-    return;
 }
 
 int cursorRow = -1;
