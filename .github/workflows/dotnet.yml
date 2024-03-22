@@ -24,7 +24,7 @@ jobs:
       with:
         path: "Secrets.cs"
         contents: |
-          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationKey => "${{ secrets.ANALYTICS_KEY }}"; }
+          public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationConnectionString => "${{ secrets.ANALYTICS_CONNECTION_STRING }}"; }
         write-mode: overwrite
         
     - name: Build Windows x64
