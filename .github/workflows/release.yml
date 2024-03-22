@@ -15,7 +15,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.x
+        dotnet-version: 8.0.x
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
@@ -43,9 +43,9 @@ jobs:
 
     - name: Zip Releases
       run: |
-        zip -rj publish_files/gitprune-win-x64.zip bin/Release/net5.0/win-x64/publish
-        tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net5.0/linux-x64/publish .
-        tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net5.0/osx-x64/publish .
+        zip -rj publish_files/gitprune-win-x64.zip bin/Release/net8.0/win-x64/publish
+        tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net8.0/linux-x64/publish .
+        tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net8.0/osx-x64/publish .
 
     - name: Upload Windows Release
       uses: bacongobbler/azure-blob-storage-upload@v1.2.0

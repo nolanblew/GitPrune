@@ -16,7 +16,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.x
+        dotnet-version: 8.0.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Build Environment
@@ -39,16 +39,16 @@ jobs:
       with:
         name: Win-Compiled-Packages
         path: |
-          bin/Release/net5.0/win-x64/publish
+          bin/Release/net8.0/win-x64/publish
     - name: Upload Linux Artifacts
       uses: actions/upload-artifact@v2
       with:
         name: Linux-Compiled-Packages
         path: |
-          bin/Release/net5.0/linux-x64/publish
+          bin/Release/net8.0/linux-x64/publish
     - name: Upload OSX Artifacts
       uses: actions/upload-artifact@v2
       with:
         name: OSX-Compiled-Packages
         path: |
-          bin/Release/net5.0/osx-x64/publish
+          bin/Release/net8.0/osx-x64/publish
