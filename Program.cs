@@ -86,7 +86,7 @@ try
             Console.WriteLine();
             Console.WriteLine("Updating... Please wait");
             analytics.TrackUpdateAvailable(true);
-            updater.Update();
+            await updater.Update();
         }
         else
         {

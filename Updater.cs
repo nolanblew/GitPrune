@@ -7,6 +7,8 @@ using System.Linq;
 using ICSharpCode.SharpZipLib.Zip;
 using ICSharpCode.SharpZipLib.Tar;
 using ICSharpCode.SharpZipLib.GZip;
+using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace GitPrune
 {
@@ -130,7 +132,7 @@ namespace GitPrune
             return AppVersion < newVersion;
         }
 
-        public void Update() {
+        public async Task Update() {
             // Download the zip file to a temp file
             var tempFile = Path.GetTempFileName();
 
@@ -150,9 +152,13 @@ namespace GitPrune
             }
 
             Console.WriteLine("Downloading Update...");
-            using (var client = new System.Net.WebClient())
+            using (var httpClient = new HttpClient())
             {
-                client.DownloadFile(zipUrl, tempFile);
+                var response = await httpClient.GetAsync(zipUrl);
+                response.EnsureSuccessStatusCode();
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var fileStream = new FileStream(tempFile, FileMode.Create);
+                await stream.CopyToAsync(fileStream);
             }
             
             // Unzip the file to a folder called "update" in the current directory

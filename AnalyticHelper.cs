@@ -27,7 +27,7 @@ public class AnalyticHelper
 
         // Setup the analytics tracker
         var config = TelemetryConfiguration.CreateDefault();
-        config.InstrumentationKey = Secrets.AnalyticsInstrumentationKey;
+        config.ConnectionString = Secrets.AnalyticsInstrumentationConnectionString;
         _telemetryClient = new TelemetryClient(config);
         _telemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
         _telemetryClient.Context.GlobalProperties.Add("app_version", _appVersion);
