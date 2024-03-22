@@ -102,7 +102,7 @@ catch (Exception ex) {
         string.Empty;
 #endif
 
-    Console.WriteLine("Error while checking for or completing the update! " + errorTrace);
+    Console.WriteLine("Error while checking for or completing the update. Please make sure you are online next time. " + errorTrace);
     analytics.TrackException(ex);
     analytics.Flush();
 }
