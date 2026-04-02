@@ -71,14 +71,9 @@ case $platform in
         echo "Installed successfully. To run Git Prune, just run: GitPrune (after running the above command) or gprune (alias)"
         echo "You can edit your aliases by in $rcfile"
         ;;
-    mysys|windowsnt|cygwin)
-        curl -O "https://nolanblew.blob.core.windows.net/git-prune-beta/gitprune-win-x64.zip"
-        echo "Extracting Git Prune..."
-        mkdir gprune
-        unzip -q gitprune-win-x64.tar.gz -d /git-prune
-        echo "Cleaning Up..."
-        rm gitprune-win-x64.tar.gz
-        echo "Windows installer is not fully supported yet. Please add the following to your PATH: [current directory]/git-prune/"
+    msys*|mingw*|windowsnt|cygwin)
+        echo "Delegating to the native PowerShell installer..."
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-RestMethod 'https://nolanblew.blob.core.windows.net/git-prune-beta/install.ps1' | Invoke-Expression"
         ;;
 esac
 echo "Finished!"

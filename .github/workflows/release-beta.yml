@@ -38,12 +38,20 @@ jobs:
       run: |
         mkdir publish_files
         cp install-beta.sh publish_files/install.sh
+        cp install-beta.ps1 publish_files/install.ps1
+        cp install-beta.cmd publish_files/install.cmd
 
     - name: Zip Releases
       run: |
         zip -rj publish_files/gitprune-win-x64.zip bin/Release/net8.0/win-x64/publish
         tar -czf publish_files/gitprune-linux-x64.tar.gz -C bin/Release/net8.0/linux-x64/publish .
         tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net8.0/osx-x64/publish .
+
+    - name: Upload Release Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Release-Beta-Files
+        path: publish_files
 
     - name: Upload Releases
       uses: bacongobbler/azure-blob-storage-upload@v3
