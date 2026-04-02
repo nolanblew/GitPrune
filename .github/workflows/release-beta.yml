@@ -99,7 +99,7 @@ jobs:
       env:
         AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
       run: |
-        az storage container create --name "git-prune-beta" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --fail-on-exist false --only-show-errors
+        az storage container create --name "git-prune-beta" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --only-show-errors
         az storage blob delete-batch --source "git-prune-beta" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --pattern "*" --only-show-errors
         az storage blob upload-batch --destination "git-prune-beta" --source "publish_files" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --overwrite true --only-show-errors
 
