@@ -4,21 +4,63 @@ on:
   push:
     tags:
       - 'b*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Beta version number without the b prefix (example: 1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   build:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]' }}
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+    - name: Resolve Release Metadata
+      id: release_info
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION="${GITHUB_REF#refs/tags/b}"
+        fi
+
+        VERSION="${VERSION#b}"
+        TAG="b${VERSION}"
+
+        echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+    - name: Create Release Tag
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+      run: |
+        TAG="${{ steps.release_info.outputs.TAG }}"
+
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          echo "Tag $TAG already exists locally."
+          exit 1
+        fi
+
+        if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+          echo "Tag $TAG already exists on origin."
+          exit 1
+        fi
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git tag -a "$TAG" -m "Release $TAG"
+        git push origin "refs/tags/$TAG"
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 8.0.x
-    - name: Get the version
-      id: get_version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/b}" >> "$GITHUB_OUTPUT"
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Build Environment
@@ -28,11 +70,11 @@ jobs:
         EOF
         
     - name: Build Windows x64
-      run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.release_info.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build Linux x64
-      run: dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.release_info.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build OSX x64
-      run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.release_info.outputs.VERSION }}" /p:IsBeta=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
       
     - name: Setup Publish Directory
       run: |
@@ -68,7 +110,7 @@ jobs:
         table_name: "gitprune"
         partition_key: "version"
         row_key: "beta"
-        data: "version_number=${{ steps.get_version.outputs.VERSION }}"
+        data: "version_number=${{ steps.release_info.outputs.VERSION }}"
         if_exists: 'replace'
         extra_args: ''
         connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
