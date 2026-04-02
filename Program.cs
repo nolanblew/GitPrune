@@ -243,21 +243,40 @@ if (isCommitting)
             analytics.Flush();
             return;
         }
-        
-        try
+
+        var deletedBranches = new List<string>();
+        var failedBranches = new List<(string Name, string Error)>();
+
+        foreach (var branch in branchesToDelete)
         {
-            foreach(var branch in branchesToDelete)
+            try
             {
                 repo.Branches.Remove(branch);
                 analytics.TrackDeleteBranch();
+                deletedBranches.Add(branch.FriendlyName);
             }
-
-            Console.WriteLine($"Deleted {branchesToDelete.Count()} branches.");
+            catch (Exception ex)
+            {
+                failedBranches.Add((branch.FriendlyName, ex.Message));
+                analytics.TrackException(ex);
+            }
         }
-        catch (Exception ex)
+
+        Console.WriteLine();
+        Console.WriteLine($"Deleted {deletedBranches.Count} branch{(deletedBranches.Count == 1 ? string.Empty : "es")}.");
+
+        if (deletedBranches.Count > 0)
         {
-            Console.WriteLine($"An error occured while deleting branches: {ex.Message}");
-            analytics.TrackException(ex);
+            Console.WriteLine("Successfully deleted:");
+            foreach (var branchName in deletedBranches)
+                Console.WriteLine($"\t- {branchName}");
+        }
+
+        if (failedBranches.Count > 0)
+        {
+            Console.WriteLine("Failed to delete:");
+            foreach (var failedBranch in failedBranches)
+                Console.WriteLine($"\t- {failedBranch.Name}: {failedBranch.Error}");
         }
     }
 
