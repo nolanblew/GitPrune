@@ -96,13 +96,12 @@ jobs:
         path: publish_files
 
     - name: Upload Releases
-      uses: bacongobbler/azure-blob-storage-upload@v3
-      with:
-        source_dir: 'publish_files'
-        container_name: 'git-prune'
-        connection_string: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
-        extra_args: '--overwrite'
-        sync: true
+      env:
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
+      run: |
+        az storage container create --name "git-prune" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --fail-on-exist false --only-show-errors
+        az storage blob delete-batch --source "git-prune" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --pattern "*" --only-show-errors
+        az storage blob upload-batch --destination "git-prune" --source "publish_files" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --overwrite true --only-show-errors
 
     - name: Update Version Number
       uses: LadyCailin/azure-table-storage-upload@v1.0.1
