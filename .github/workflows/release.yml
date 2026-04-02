@@ -105,10 +105,28 @@ jobs:
 
     - name: Update Version Number
       env:
-        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.ACURETABLECONNECTIONSTRING }}
+        AZURE_BLOB_CONNECTION_STRING: ${{ secrets.AZURECONTAINERCONNECTIONSTRING }}
       run: |
-        az storage table create --name "gitprune" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --only-show-errors
-        az storage entity insert --table-name "gitprune" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --if-exists replace --only-show-errors --entity "PartitionKey=version" "RowKey=stable" "version_number=${{ steps.release_info.outputs.VERSION }}" "version_number@odata.type=Edm.String"
+        ACCOUNT_NAME="$(printf '%s' "$AZURE_BLOB_CONNECTION_STRING" | tr ';' '\n' | awk -F= '$1=="AccountName"{print substr($0, index($0, "=") + 1)}')"
+        ACCOUNT_KEY="$(printf '%s' "$AZURE_BLOB_CONNECTION_STRING" | tr ';' '\n' | awk -F= '$1=="AccountKey"{print substr($0, index($0, "=") + 1)}')"
+        TABLE_ENDPOINT="$(printf '%s' "$AZURE_BLOB_CONNECTION_STRING" | tr ';' '\n' | awk -F= '$1=="TableEndpoint"{print substr($0, index($0, "=") + 1)}')"
+        ENDPOINT_SUFFIX="$(printf '%s' "$AZURE_BLOB_CONNECTION_STRING" | tr ';' '\n' | awk -F= '$1=="EndpointSuffix"{print substr($0, index($0, "=") + 1)}')"
+
+        if [ -z "$ACCOUNT_NAME" ] || [ -z "$ACCOUNT_KEY" ]; then
+          echo "The storage connection string must include AccountName and AccountKey."
+          exit 1
+        fi
+
+        if [ -z "$TABLE_ENDPOINT" ]; then
+          if [ -n "$ENDPOINT_SUFFIX" ]; then
+            TABLE_ENDPOINT="https://${ACCOUNT_NAME}.table.${ENDPOINT_SUFFIX}"
+          else
+            TABLE_ENDPOINT="https://${ACCOUNT_NAME}.table.core.windows.net"
+          fi
+        fi
+
+        az storage table create --name "gitprune" --account-name "$ACCOUNT_NAME" --account-key "$ACCOUNT_KEY" --table-endpoint "$TABLE_ENDPOINT" --only-show-errors
+        az storage entity insert --table-name "gitprune" --account-name "$ACCOUNT_NAME" --account-key "$ACCOUNT_KEY" --table-endpoint "$TABLE_ENDPOINT" --if-exists replace --only-show-errors --entity "PartitionKey=version" "RowKey=stable" "version_number=${{ steps.release_info.outputs.VERSION }}" "version_number@odata.type=Edm.String"
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
