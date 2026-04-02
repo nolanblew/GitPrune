@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -33,19 +37,19 @@ jobs:
       run: dotnet publish -r osx-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
       
     - name: Upload Windows Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: Win-Compiled-Packages
         path: |
           bin/Release/net8.0/win-x64/publish
     - name: Upload Linux Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: Linux-Compiled-Packages
         path: |
           bin/Release/net8.0/linux-x64/publish
     - name: Upload OSX Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: OSX-Compiled-Packages
         path: |

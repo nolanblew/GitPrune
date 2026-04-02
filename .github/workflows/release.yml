@@ -90,7 +90,7 @@ jobs:
         tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net8.0/osx-x64/publish .
 
     - name: Upload Release Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: Release-Files
         path: publish_files
@@ -104,15 +104,11 @@ jobs:
         az storage blob upload-batch --destination "git-prune" --source "publish_files" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --overwrite true --only-show-errors
 
     - name: Update Version Number
-      uses: LadyCailin/azure-table-storage-upload@v1.0.1
-      with:
-        table_name: "gitprune"
-        partition_key: "version"
-        row_key: "stable"
-        data: "version_number=${{ steps.release_info.outputs.VERSION }}"
-        if_exists: 'replace'
-        extra_args: ''
-        connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
+      env:
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.ACURETABLECONNECTIONSTRING }}
+      run: |
+        az storage table create --name "gitprune" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --only-show-errors
+        az storage entity insert --table-name "gitprune" --connection-string "$AZURE_STORAGE_CONNECTION_STRING" --if-exists replace --only-show-errors --entity "PartitionKey=version" "RowKey=stable" "version_number=${{ steps.release_info.outputs.VERSION }}" "version_number@odata.type=Edm.String"
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
