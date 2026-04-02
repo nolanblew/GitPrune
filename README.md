@@ -9,17 +9,29 @@ The key advantage of this is that it will work even when `Squash and Merge` is t
 ## Usage
 
 ### Installation
-**Windows**: Coming Soon
+**Windows (PowerShell)**:
+Run:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-RestMethod 'https://nolanblew.blob.core.windows.net/git-prune/install.ps1' | Invoke-Expression"
+```
 
-**Linux / OSX / WSL**:
+**Windows (cmd.exe)**:
+Run:
+```bat
+curl.exe -fsSL -o "%TEMP%\gitprune-install.cmd" "https://nolanblew.blob.core.windows.net/git-prune/install.cmd" && "%TEMP%\gitprune-install.cmd"
+```
+
+The Windows installer installs Git Prune to `%USERPROFILE%\.git-prune`, adds that folder to your user `PATH`, and creates a `gprune.cmd` shim so you can run either `GitPrune.exe` or `gprune` from a new terminal.
+
+**Linux / macOS / WSL**:
 Run:
 ```bash
 curl -fsSL https://nolanblew.blob.core.windows.net/git-prune/install.sh | bash
 ```
 
-Note: You must have root priveleges OR be able to run as `sudo`
+Note: On Linux you must have root privileges or be able to run `sudo` because the installer may install `xdg-utils` if it is missing.
 
-Follow the instructions, or alternatively open your `~/.profile`, `~/.bashrc`, `~/.zshrc` (on Zsh) or `~/.cshrc` (on OXS) and add:
+Follow the instructions, or alternatively open your `~/.profile`, `~/.bashrc`, `~/.zshrc` (on Zsh) or `~/.cshrc` (on macOS) and add:
 ```bash
 alias gprune=~/.git-prune/GitPrune
 ```
@@ -30,7 +42,7 @@ Ensure you're current working directory is a `git` repository and matches the re
 
 **Windows**:
 ```shell
-GitPrune.exe [Git Directory] [-i]
+gprune [Git Directory] [-i]
 ```
 
 **Linux**
@@ -48,7 +60,7 @@ gprune [Git Directory] [-i]
  - (Optional) `[-i]`: Use this to find out which branches _would_ be deleted without having the ability to delete them. Note: You will _always_ be prompted if you want to delete the local branches if this is not used. This will just not allow you to actually delete any branches.
 
 ## Downloading
-You can find the latest packaged version in the Releases section. You can also find the latest branch in the `Actions` artifacts
+You can find the latest packaged version in the Releases section. Tagged release workflows also upload the packaged archives plus install scripts as GitHub Actions artifacts and sync them to Azure Blob Storage for the one-line installers above.
 
 ## Compiling
 Requirements:
@@ -57,7 +69,7 @@ Requirements:
  - [Git](https://git-scm.com/downloads) installed on your machine
  - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
-Note: Currently there is only a publishing script for `.bat` (Windows). Feel free to add support for other platforms
+Note: Local publishing helpers are available as both `publish.bat` and `publish.sh`.
 
 1. Clone the repo
 0. Add the `Secrets` class that implements `ISecrets` (more info below)
@@ -82,6 +94,6 @@ public class Secrets : ISecrets
 ```
 
 ## Publishing
-To publish, make sure you have the `dotnet` directory in your environemnt path. Then in the root directory of the repository run `publish.bat` (Widnows only) to generate the packages.
+To publish, make sure you have `dotnet` in your environment `PATH`. Then in the root directory of the repository run `publish.bat` or `publish.sh` to generate the platform packages locally.
 
 These packages are self-contained, meaning they include .NET 8 and .NET 8 Mono for the respective platform. This results in filesizes ~64MB, but ensures it will run on systems that don't have .NET or mono installed. You can also remove the `--self-contained` to remove the .NET runtime, making the executables ~2MB but requiring the runtime to be installed on the computer you are using.
