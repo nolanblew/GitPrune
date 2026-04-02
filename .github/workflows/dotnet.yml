@@ -12,20 +12,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Build Environment
-      uses: DamianReeves/write-file-action@v1.0
-      with:
-        path: "Secrets.cs"
-        contents: |
+      run: |
+        cat <<'EOF' > Secrets.cs
           public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationConnectionString => "${{ secrets.ANALYTICS_CONNECTION_STRING }}"; }
-        write-mode: overwrite
+        EOF
         
     - name: Build Windows x64
       run: dotnet publish -r win-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
@@ -35,19 +33,19 @@ jobs:
       run: dotnet publish -r osx-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
       
     - name: Upload Windows Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: Win-Compiled-Packages
         path: |
           bin/Release/net8.0/win-x64/publish
     - name: Upload Linux Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: Linux-Compiled-Packages
         path: |
           bin/Release/net8.0/linux-x64/publish
     - name: Upload OSX Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: OSX-Compiled-Packages
         path: |

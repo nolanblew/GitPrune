@@ -5,29 +5,30 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 8.0.x
     - name: Get the version
       id: get_version
-      run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Build Environment
-      uses: DamianReeves/write-file-action@v1.0
-      with:
-        path: "Secrets.cs"
-        contents: |
+      run: |
+        cat <<'EOF' > Secrets.cs
           public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationConnectionString => "${{ secrets.ANALYTICS_CONNECTION_STRING }}"; }
-        write-mode: overwrite
+        EOF
         
     - name: Build Windows x64
       run: dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="${{ steps.get_version.outputs.VERSION }}" -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
@@ -48,7 +49,7 @@ jobs:
         tar -czf publish_files/gitprune-osx-x64.tar.gz -C bin/Release/net8.0/osx-x64/publish .
 
     - name: Upload Releases
-      uses: bacongobbler/azure-blob-storage-upload@v1.2.0
+      uses: bacongobbler/azure-blob-storage-upload@v3
       with:
         source_dir: 'publish_files'
         container_name: 'git-prune'
@@ -68,7 +69,7 @@ jobs:
         connection_string: "${{ secrets.ACURETABLECONNECTIONSTRING }}"
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         fail_on_unmatched_files: true
         files: |
