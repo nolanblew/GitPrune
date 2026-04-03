@@ -115,13 +115,18 @@ public class GithubManager
 
     async Task<string> _GetOauthToken()
     {
+        const string callbackPath = "authorize";
+        var callbackPort = BrowserHelper.GetRandomUnusedPort();
+        var redirectUri = new Uri($"http://127.0.0.1:{callbackPort}/{callbackPath}");
+
         var oauthUrl = _client.Oauth.GetGitHubLoginUrl(
             new OauthLoginRequest(Secrets.ClientId)
             {
+                RedirectUri = redirectUri,
                 Scopes = { "repo", "read:org", "read:user" },
             });
 
-        var browser = new BrowserHelper("", 58292);
+        var browser = new BrowserHelper(callbackPath, callbackPort);
         var code = await browser.GetAuthTokenAsync(oauthUrl.AbsoluteUri);
 
         if (string.IsNullOrWhiteSpace(code))
@@ -129,7 +134,12 @@ public class GithubManager
             throw new Exception("An error occured: code was blank.");
         }
 
-        var oauthToken = await _client.Oauth.CreateAccessToken(new OauthTokenRequest(clientId: Secrets.ClientId, clientSecret: Secrets.ClientSecret, code: code));
+        var oauthTokenRequest = new OauthTokenRequest(clientId: Secrets.ClientId, clientSecret: Secrets.ClientSecret, code: code)
+        {
+            RedirectUri = redirectUri,
+        };
+
+        var oauthToken = await _client.Oauth.CreateAccessToken(oauthTokenRequest);
 
         try
         {

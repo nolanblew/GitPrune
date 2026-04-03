@@ -8,11 +8,20 @@ using Microsoft.AspNetCore.Builder;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
+using System.Net;
+using System.Net.Sockets;
 
 // https://brockallen.com/2016/09/24/process-start-for-urls-on-net-core/
 // Kestrel Server help from Gary Archer https://stackoverflow.com/a/67821497/2272235
 public class BrowserHelper
 {
+    public static int GetRandomUnusedPort()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        return ((IPEndPoint)listener.LocalEndpoint).Port;
+    }
+
     public static Process OpenBrowser(string url)
     {
         try
@@ -87,13 +96,15 @@ public class LoopbackHttpListener : IAsyncDisposable
     IWebHost _host;
     TaskCompletionSource<string> _tcs = new TaskCompletionSource<string>();
     string _url;
+    readonly PathString _callbackPath;
 
     public LoopbackHttpListener(int port, string path = null)
     {
         path = path ?? string.Empty;
         if (path.StartsWith("/")) { path = path.Substring(1); }
+        _callbackPath = string.IsNullOrWhiteSpace(path) ? PathString.Empty : new PathString("/" + path);
 
-        _url = $"http://127.0.0.1:{port}/{path}";
+        _url = $"http://127.0.0.1:{port}";
 
         _host = new WebHostBuilder()
             .UseKestrel()
@@ -114,7 +125,7 @@ public class LoopbackHttpListener : IAsyncDisposable
     {
         builder.Run(async context =>
         {
-            if (context.Request.Method == "GET")
+            if (context.Request.Method == "GET" && IsExpectedCallbackPath(context.Request.Path))
             {
                 SetResult(context.Request.QueryString.Value, context);
             }
@@ -127,6 +138,9 @@ public class LoopbackHttpListener : IAsyncDisposable
             }
         });
     }
+
+    bool IsExpectedCallbackPath(PathString requestPath)
+        => _callbackPath == PathString.Empty || requestPath.Equals(_callbackPath, StringComparison.OrdinalIgnoreCase);
 
     void SetResult(string value, HttpContext context)
     {
