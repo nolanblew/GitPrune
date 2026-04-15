@@ -126,6 +126,7 @@ public record Settings
     public string GithubOwner { get; set; }
     public string GithubRepo { get; set; }
     public string[] BranchesToExclude { get; set; }
+    public bool? ForceDeleteWorktrees { get; set; }
 }
 
 public record TokenSettings

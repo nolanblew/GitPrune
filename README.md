@@ -59,6 +59,18 @@ gprune [Git Directory] [-i]
  - (Optional) `[Git Directory]`: This is the directory that contains the `git` repo you want to compare against. If not provided, your current working directory will be used
  - (Optional) `[-i]`: Use this to find out which branches _would_ be deleted without having the ability to delete them. Note: You will _always_ be prompted if you want to delete the local branches if this is not used. This will just not allow you to actually delete any branches.
 
+## Configuration
+
+The repo-local `prune_config.json` also supports:
+
+```json
+{
+  "ForceDeleteWorktrees": true
+}
+```
+
+Set `ForceDeleteWorktrees` to `true` if you want Git Prune to run `git worktree remove -f` for merged linked worktrees automatically. If you leave it unset, Git Prune will try a normal worktree removal first and then prompt you with the affected branches if force deletion is needed. The base/root worktree is never removed automatically.
+
 ## Downloading
 You can find the latest packaged version in the Releases section. Tagged release workflows also upload the packaged archives plus install scripts as GitHub Actions artifacts and sync them to Azure Blob Storage for the one-line installers above.
 
