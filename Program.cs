@@ -128,11 +128,8 @@ using var repo = new Repository(workingDirectory);
 // Migrate the settings file if it exists in the main directory
 MigrationHelper.DeleteSettingsFile(workingDirectory);
 
-// The gitDirectory is the directory where the .git folder is located for the settings
-var gitDirectory = repo.Info.Path;
-if (!gitDirectory.EndsWith(".git") &&  Directory.Exists(Path.Combine(gitDirectory, ".git"))) {
-    gitDirectory = Path.Combine(gitDirectory, ".git");
-}
+// Every worktree shares this directory, so the repository configuration stays consistent.
+var gitDirectory = GitWorktreeManager.GetCommonGitDirectory(workingDirectory);
 
 // Check the config
 var repoRemote = repo.Network.Remotes.FirstOrDefault();
@@ -186,102 +183,191 @@ var localBranches = repo.Branches
     .Where(b => !b.IsRemote && !_BRANCHES_TO_EXCLUDE.Contains(b.FriendlyName))
     .ToArray();
 
-var branchesToDelete = new List<Branch>();
-
-Console.WriteLine($"Found {localBranches.Length} local branches.");
-Console.WriteLine($"Determining which branches have been merged. Please wait... (this may take a minute)");
-
-for (int i = 0; i < localBranches.Length; i += _BULK_GITHUB_REQUESTS) 
+var worktrees = Array.Empty<GitWorktree>();
+var currentWorktreePath = string.Empty;
+try
 {
-    WriteProgress($"\rProgress: {i}/{localBranches.Length}");
+    worktrees = GitWorktreeManager.List(workingDirectory).ToArray();
+    currentWorktreePath = GitWorktreeManager.GetCurrentWorktreePath(workingDirectory);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Unable to inspect worktrees. Only ordinary branch pruning will be available. Error: {ex.Message}");
+    analytics.TrackException(ex);
+}
+
+bool IsProtectedWorktree(GitWorktree worktree)
+    => worktree.IsMain || GitWorktreeManager.PathsEqual(worktree.Path, currentWorktreePath);
+
+var protectedBranchNames = new HashSet<string>(
+    worktrees
+        .Where(IsProtectedWorktree)
+        .Where(w => !string.IsNullOrWhiteSpace(w.BranchName))
+        .Select(w => w.BranchName),
+    StringComparer.Ordinal);
+
+// Never delete the checked-out branch, even when worktree discovery was unavailable.
+if (repo.Head?.FriendlyName != null)
+{
+    protectedBranchNames.Add(repo.Head.FriendlyName);
+}
+
+var worktreesByBranch = worktrees
+    .Where(w => !IsProtectedWorktree(w) && !string.IsNullOrWhiteSpace(w.BranchName))
+    .GroupBy(w => w.BranchName, StringComparer.Ordinal)
+    .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
+var branchesToEvaluate = localBranches
+    .Where(b => !protectedBranchNames.Contains(b.FriendlyName))
+    .ToArray();
+var mergedBranchNames = new HashSet<string>(StringComparer.Ordinal);
+
+Console.WriteLine($"Found {localBranches.Length} local branches and {worktrees.Length} worktrees.");
+Console.WriteLine("Determining which branches have been merged. Please wait... (this may take a minute)");
+
+for (int i = 0; i < branchesToEvaluate.Length; i += _BULK_GITHUB_REQUESTS)
+{
+    WriteProgress($"\rProgress: {i}/{branchesToEvaluate.Length}");
 
     var lowIndex = i;
-    var highIndex = Math.Min(i + _BULK_GITHUB_REQUESTS, localBranches.Length);
-
-    var tasks = localBranches[lowIndex..highIndex]
+    var highIndex = Math.Min(i + _BULK_GITHUB_REQUESTS, branchesToEvaluate.Length);
+    var tasks = branchesToEvaluate[lowIndex..highIndex]
         .Select(async b => (LocalBranch: b, PullRequest: await _githubManager.FindClosedPullRequestFromBranchName(b.FriendlyName)));
 
     var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-    branchesToDelete.AddRange(results.Where(r => r.PullRequest?.Merged ?? false).Select(r => r.LocalBranch));
+    foreach (var result in results.Where(r => r.PullRequest?.Merged ?? false))
+    {
+        mergedBranchNames.Add(result.LocalBranch.FriendlyName);
+    }
 }
 
-WriteProgress($"\rProgress: {localBranches.Length}/{localBranches.Length}");
+WriteProgress($"\rProgress: {branchesToEvaluate.Length}/{branchesToEvaluate.Length}");
 Console.WriteLine();
 Console.WriteLine("Done.");
 
-analytics.TrackDeletableBranches(branchesToDelete.Count);
+var pruneTargets = localBranches
+    .Where(b => !protectedBranchNames.Contains(b.FriendlyName) && mergedBranchNames.Contains(b.FriendlyName))
+    .Select(b => new PrunableTarget(
+        b,
+        worktreesByBranch.TryGetValue(b.FriendlyName, out var worktree) ? worktree : null))
+    .ToArray();
 
-if (branchesToDelete.Count == 0)
+var worktreeTargetCount = pruneTargets.Count(target => target.Worktree != null);
+analytics.TrackDeletableBranches(pruneTargets.Length);
+analytics.TrackDeletableWorktrees(worktreeTargetCount);
+
+if (pruneTargets.Length == 0)
 {
-    Console.WriteLine("You have no local branches associated with a merged PR. Congrats!");
+    Console.WriteLine("You have no local branches or worktrees associated with a merged PR. Congrats!");
     analytics.Flush();
     return;
 }
 
-Console.WriteLine("Branches that will be deleted:");
-foreach (var branch in branchesToDelete)
-    Console.WriteLine($"\t- {branch.FriendlyName}");
+Console.WriteLine("Branches and worktrees associated with merged PRs:");
+foreach (var target in pruneTargets)
+{
+    var worktreeLabel = target.Worktree == null ? string.Empty : $" (worktree: {target.Worktree.Path})";
+    Console.WriteLine($"\t- {target.Branch.FriendlyName}{worktreeLabel}");
+}
 
 if (isCommitting)
 {
     Console.WriteLine();
-    Console.WriteLine(
-        branchesToDelete.Count switch {
-            1 => $"Do you wish to delete this branch from your local Git?",
-            _ => "Do you wish to delete these branches from your local Git?"
-        }
-    );
+    Console.WriteLine("Choose what to delete:");
+    Console.WriteLine("\t[a] All listed branches and worktrees");
+    Console.WriteLine("\t[w] Worktrees only (keep their local branches)");
+    Console.WriteLine("\t[b] Branches only in this worktree (skip linked worktrees)");
+    Console.Write("a/w/b (default: cancel) >");
 
-    Console.Write("y/N >");
-    var result = Console.ReadLine().ToLower().Trim();
-    if (result == "y" || result == "yes")
+    var selection = ParsePruneSelection(Console.ReadLine());
+    if (selection == PruneSelection.None)
     {
-        // Check if we are currently in one of the branches to delete
-        if (branchesToDelete.Any(b => b.FriendlyName == repo.Head.FriendlyName))
-        {
-            Console.WriteLine("You are currently on one of the branches to delete. Please switch to another branch and run Git Prune again.");
-            analytics.Flush();
-            return;
-        }
-
+        Console.WriteLine("No branches or worktrees were deleted.");
+    }
+    else
+    {
         var deletedBranches = new List<string>();
         var failedBranches = new List<(string Name, string Error)>();
+        var deletedWorktrees = new List<string>();
+        var failedWorktrees = new List<(string Path, string Error)>();
+        var branchTargetsToDelete = new List<PrunableTarget>();
 
-        foreach (var branch in branchesToDelete)
+        if (selection is PruneSelection.All or PruneSelection.WorktreesOnly)
+        {
+            foreach (var target in pruneTargets.Where(target => target.Worktree != null))
+            {
+                if (TryRemoveWorktree(target.Worktree, deletedWorktrees, failedWorktrees)
+                    && selection == PruneSelection.All)
+                {
+                    branchTargetsToDelete.Add(target);
+                }
+            }
+        }
+
+        if (selection is PruneSelection.All or PruneSelection.BranchesOnly)
+        {
+            branchTargetsToDelete.AddRange(pruneTargets.Where(target => target.Worktree == null));
+        }
+
+        foreach (var target in branchTargetsToDelete)
         {
             try
             {
-                repo.Branches.Remove(branch);
-                analytics.TrackDeleteBranch();
-                deletedBranches.Add(branch.FriendlyName);
+                var result = GitWorktreeManager.DeleteBranch(workingDirectory, target.Branch.FriendlyName);
+                if (result.Succeeded)
+                {
+                    analytics.TrackDeleteBranch();
+                    deletedBranches.Add(target.Branch.FriendlyName);
+                }
+                else
+                {
+                    var error = DescribeBranchDeleteFailure(target.Branch.FriendlyName, result);
+                    failedBranches.Add((target.Branch.FriendlyName, error));
+                    analytics.TrackException(new InvalidOperationException(error));
+                }
             }
             catch (Exception ex)
             {
-                failedBranches.Add((branch.FriendlyName, ex.Message));
+                var error = $"Unable to start `git branch -D -- {target.Branch.FriendlyName}`: {ex.Message}";
+                failedBranches.Add((target.Branch.FriendlyName, error));
                 analytics.TrackException(ex);
             }
         }
 
         Console.WriteLine();
-        Console.WriteLine($"Deleted {deletedBranches.Count} branch{(deletedBranches.Count == 1 ? string.Empty : "es")}.");
+        Console.WriteLine($"Deleted {deletedBranches.Count} branch{(deletedBranches.Count == 1 ? string.Empty : "es")} and {deletedWorktrees.Count} worktree{(deletedWorktrees.Count == 1 ? string.Empty : "s")}.");
+
+        if (deletedWorktrees.Count > 0)
+        {
+            Console.WriteLine("Successfully deleted worktrees:");
+            foreach (var path in deletedWorktrees)
+                Console.WriteLine($"\t- {path}");
+        }
 
         if (deletedBranches.Count > 0)
         {
-            Console.WriteLine("Successfully deleted:");
+            Console.WriteLine("Successfully deleted branches:");
             foreach (var branchName in deletedBranches)
                 Console.WriteLine($"\t- {branchName}");
         }
 
+        if (failedWorktrees.Count > 0)
+        {
+            Console.WriteLine("Failed to delete worktrees:");
+            foreach (var failedWorktree in failedWorktrees)
+                Console.WriteLine($"\t- {failedWorktree.Path}: {failedWorktree.Error}");
+        }
+
         if (failedBranches.Count > 0)
         {
-            Console.WriteLine("Failed to delete:");
+            Console.WriteLine("Failed to delete branches:");
             foreach (var failedBranch in failedBranches)
                 Console.WriteLine($"\t- {failedBranch.Name}: {failedBranch.Error}");
         }
     }
-
-    analytics.Flush();
 }
+
+analytics.Flush();
 
 void WriteProgress(string message)
 {
@@ -301,3 +387,103 @@ void WriteProgress(string message)
         Console.WriteLine(message);
     }
 }
+
+PruneSelection ParsePruneSelection(string value)
+{
+    return value?.Trim().ToLowerInvariant() switch
+    {
+        "a" or "all" or "y" or "yes" => PruneSelection.All,
+        "w" or "worktree" or "worktrees" => PruneSelection.WorktreesOnly,
+        "b" or "branch" or "branches" => PruneSelection.BranchesOnly,
+        _ => PruneSelection.None,
+    };
+}
+
+bool TryRemoveWorktree(
+    GitWorktree worktree,
+    List<string> deletedWorktrees,
+    List<(string Path, string Error)> failedWorktrees)
+{
+    try
+    {
+        var result = GitWorktreeManager.Remove(workingDirectory, worktree.Path, settings.AlwaysForceWorktreeDeletion);
+        if (result.Succeeded)
+        {
+            analytics.TrackDeleteWorktree();
+            deletedWorktrees.Add(worktree.Path);
+            return true;
+        }
+
+        var error = GetGitError(result);
+        if (settings.AlwaysForceWorktreeDeletion)
+        {
+            failedWorktrees.Add((worktree.Path, error));
+            return false;
+        }
+
+        Console.WriteLine($"Unable to remove worktree '{worktree.Path}': {error}");
+        Console.Write("Try again with -f? y/N >");
+        if (!IsYes(Console.ReadLine()))
+        {
+            failedWorktrees.Add((worktree.Path, error));
+            return false;
+        }
+
+        var forcedResult = GitWorktreeManager.Remove(workingDirectory, worktree.Path, force: true);
+        if (!forcedResult.Succeeded)
+        {
+            failedWorktrees.Add((worktree.Path, GetGitError(forcedResult)));
+            return false;
+        }
+
+        analytics.TrackDeleteWorktree();
+        deletedWorktrees.Add(worktree.Path);
+        Console.Write("Forced removal succeeded. Always use -f when removing worktrees? y/N >");
+        if (IsYes(Console.ReadLine()))
+        {
+            settings.AlwaysForceWorktreeDeletion = true;
+            try
+            {
+                SettingsManager.SaveSettings(settings, gitDirectory);
+                Console.WriteLine("Saved AlwaysForceWorktreeDeletion: true in the repository configuration.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Removed the worktree, but could not save the force-delete preference: {ex.Message}");
+                analytics.TrackException(ex);
+            }
+        }
+
+        return true;
+    }
+    catch (Exception ex)
+    {
+        failedWorktrees.Add((worktree.Path, ex.Message));
+        analytics.TrackException(ex);
+        return false;
+    }
+}
+
+bool IsYes(string value)
+    => value?.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) == true
+        || value?.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase) == true;
+
+string GetGitError(GitCommandResult result)
+    => string.IsNullOrWhiteSpace(result.Error) ? result.Output.Trim() : result.Error.Trim();
+
+string DescribeBranchDeleteFailure(string branchName, GitCommandResult result)
+{
+    var gitError = GetGitError(result);
+    return $"`git branch -D -- {branchName}` exited with code {result.ExitCode}: {gitError} "
+        + "The branch may still be checked out by a linked worktree; run `git worktree list` to find it.";
+}
+
+enum PruneSelection
+{
+    None,
+    All,
+    WorktreesOnly,
+    BranchesOnly,
+}
+
+sealed record PrunableTarget(Branch Branch, GitWorktree Worktree);

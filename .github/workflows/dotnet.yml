@@ -22,19 +22,24 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: |
+        dotnet restore GitPrune.csproj
+        dotnet restore GitPrune.Tests/GitPrune.Tests.csproj
     - name: Set Build Environment
       run: |
         cat <<'EOF' > Secrets.cs
           public class Secrets { public static string ClientId => "${{ secrets.GH_PRUNE_CLIENT_ID }}"; public static string ClientSecret => "${{ secrets.GH_PRUNE_CLIENT_SECRET }}"; public static string AzureBlobTableKey => "${{ secrets.AZ_BLOB_ACCESS_KEY }}"; public static string AnalyticsInstrumentationConnectionString => "${{ secrets.ANALYTICS_CONNECTION_STRING }}"; }
         EOF
+
+    - name: Test
+      run: dotnet test GitPrune.Tests/GitPrune.Tests.csproj --no-restore
         
     - name: Build Windows x64
-      run: dotnet publish -r win-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish GitPrune.csproj -r win-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build Linux x64
-      run: dotnet publish -r linux-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish GitPrune.csproj -r linux-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
     - name: Build OSX x64
-      run: dotnet publish -r osx-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish GitPrune.csproj -r osx-x64 --configuration Release --self-contained false -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
       
     - name: Upload Windows Artifacts
       uses: actions/upload-artifact@v6
