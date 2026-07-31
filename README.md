@@ -2,7 +2,7 @@
 ![example branch parameter](https://github.com/nolanblew/GitPrune/actions/workflows/dotnet.yml/badge.svg?branch=main)
 
 # Git Prune
-This program is intended to be an alternative `prune` method to Git's [prune](https://git-scm.com/docs/git-prune) with the intent of removing local git branches that have already been merged into GitHub (currently only supports GitHub) by querying GitHub's API to look for matching PRs that have been merged.
+This program is intended to be an alternative `prune` method to Git's [prune](https://git-scm.com/docs/git-prune) with the intent of removing local git branches and linked worktrees that have already been merged into GitHub (currently only supports GitHub) by querying GitHub's API to look for matching PRs that have been merged.
 
 The key advantage of this is that it will work even when `Squash and Merge` is the default merge-style to a branch - something that Git's `prune` functionality cannot handle as the HEAD is not present in the base branch.
 
@@ -59,6 +59,24 @@ gprune [Git Directory] [-i]
  - (Optional) `[Git Directory]`: This is the directory that contains the `git` repo you want to compare against. If not provided, your current working directory will be used
  - (Optional) `[-i]`: Use this to find out which branches _would_ be deleted without having the ability to delete them. Note: You will _always_ be prompted if you want to delete the local branches if this is not used. This will just not allow you to actually delete any branches.
 
+#### Worktrees
+
+GitPrune shows a branch checked out in a linked worktree as one item, labeled with its worktree path. It always protects both the repository's base worktree and the worktree from which it is run.
+
+When pruning, choose one of these scopes:
+
+ - `a`: delete all listed branches and worktrees. A successfully removed worktree's branch is also deleted.
+ - `w`: delete worktrees only and retain their local branches.
+ - `b`: prune ordinary local branches only, leaving every linked worktree in place.
+
+If Git refuses to remove a worktree, GitPrune offers to retry with `-f`. After a successful forced retry, it can save this repository setting in `.git/prune_config.json` (shared by every worktree):
+
+```json
+{
+  "AlwaysForceWorktreeDeletion": true
+}
+```
+
 ## Downloading
 You can find the latest packaged version in the Releases section. Tagged release workflows also upload the packaged archives plus install scripts as GitHub Actions artifacts and sync them to Azure Blob Storage for the one-line installers above.
 
@@ -74,6 +92,7 @@ Note: Local publishing helpers are available as both `publish.bat` and `publish.
 1. Clone the repo
 0. Add the `Secrets` class that implements `ISecrets` (more info below)
 0. Build/Run!
+0. Run the unit tests with `dotnet test GitPrune.Tests/GitPrune.Tests.csproj`
 0. Publish to build distributions for Windows, Mac, and Linux
 
 ## Secrets
