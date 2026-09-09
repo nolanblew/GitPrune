@@ -19,7 +19,6 @@ public class GithubManager
 
     public async Task<PullRequest> FindClosedPullRequestFromBranchName(string branchName)
     {
-        try {
             if (!_hasSetCredentials)
             {
                 throw new CredentialsNotSetException();
@@ -31,19 +30,6 @@ public class GithubManager
             });
 
             return pullRequest?.FirstOrDefault();
-        }
-        catch (Exception ex) when (
-            ex is CredentialsNotSetException
-         || ex is ForbiddenException
-         || ex is NotFoundException
-         || ex is UnauthorizedAccessException)
-        {
-            Console.WriteLine("There was an issue with your credentials. Please check that you have access to this repo.");
-            Console.WriteLine("If you'd like to re-login, start GitPrune with the \"-r\" flag.");
-            Console.WriteLine("Exception: " + ex.Message);
-            Environment.Exit(1);
-            return null;
-        }
     }
 
     public static Settings SetOwnerRepo(string remoteUrl, string baseRepoPath)
@@ -101,6 +87,11 @@ public class GithubManager
 
     public async Task SetCredentialsAsync(bool forceReLogin = false)
     {
+        if (forceReLogin)
+        {
+            SettingsManager.DeleteSettingsFile();
+            _hasSetCredentials = false;
+        }
         var token = SettingsManager.GetOauthToken()?.OAuthToken;
 
         if (forceReLogin || string.IsNullOrWhiteSpace(token))
@@ -131,11 +122,9 @@ public class GithubManager
 
         var oauthToken = await _client.Oauth.CreateAccessToken(new OauthTokenRequest(clientId: Secrets.ClientId, clientSecret: Secrets.ClientSecret, code: code));
 
-        try
-        {
-            SettingsManager.SaveOauthToken(oauthToken.AccessToken);
-        }
-        catch {}
+        if (string.IsNullOrWhiteSpace(oauthToken.AccessToken))
+            throw new InvalidOperationException("GitHub did not return an access token. Run gprune --login to try again.");
+        SettingsManager.SaveOauthToken(oauthToken.AccessToken);
 
         return oauthToken.AccessToken;
     }

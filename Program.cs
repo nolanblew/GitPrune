@@ -46,6 +46,34 @@ if (args.Contains("-v") || args.Contains("--version"))
     return;
 }
 
+// Authentication commands work outside repositories and never start pruning.
+var loginRequested = args.Any(a => a is "--login" or "--reauth");
+var logoutRequested = args.Contains("--logout");
+if (loginRequested || logoutRequested)
+{
+    try
+    {
+        if (loginRequested && logoutRequested)
+            throw new ArgumentException("Use --logout or --login/--reauth separately.");
+        if (logoutRequested)
+        {
+            SettingsManager.DeleteSettingsFile();
+            Console.WriteLine("Logged out locally. The saved GitHub token has been removed.");
+        }
+        else
+        {
+            await new GithubManager(new Settings()).SetCredentialsAsync(forceReLogin: true);
+            Console.WriteLine("Logged in to GitHub. Credentials saved.");
+        }
+    }
+    catch (Exception ex)
+    {
+        ReportGithubFailure(ex);
+    }
+    analytics.Flush();
+    return;
+}
+
 // -r or --reset to reset the global config (delete it)
 if (args.Contains("-r") || args.Contains("--reset"))
 {
@@ -173,8 +201,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.WriteLine("Unfortunately an error occured. Please try again.");
-    Console.WriteLine($"Error: {ex.Message}");
+    ReportGithubFailure(ex);
     analytics.Flush();
     return;
 }
@@ -225,20 +252,36 @@ var mergedBranchNames = new HashSet<string>(StringComparer.Ordinal);
 Console.WriteLine($"Found {localBranches.Length} local branches and {worktrees.Length} worktrees.");
 Console.WriteLine("Determining which branches have been merged. Please wait... (this may take a minute)");
 
+var authenticationRecovery = new AuthenticationRecovery();
+try
+{
 for (int i = 0; i < branchesToEvaluate.Length; i += _BULK_GITHUB_REQUESTS)
 {
     WriteProgress($"\rProgress: {i}/{branchesToEvaluate.Length}");
 
     var lowIndex = i;
     var highIndex = Math.Min(i + _BULK_GITHUB_REQUESTS, branchesToEvaluate.Length);
-    var tasks = branchesToEvaluate[lowIndex..highIndex]
-        .Select(async b => (LocalBranch: b, PullRequest: await _githubManager.FindClosedPullRequestFromBranchName(b.FriendlyName)));
-
-    var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+    var results = await authenticationRecovery.ExecuteAsync(
+        () => Task.WhenAll(branchesToEvaluate[lowIndex..highIndex]
+            .Select(async b => (LocalBranch: b, PullRequest: await _githubManager.FindClosedPullRequestFromBranchName(b.FriendlyName)))),
+        async () =>
+        {
+            Console.WriteLine("\nGitHub rejected your saved credentials (401). Please sign in again in your browser.");
+            await _githubManager.SetCredentialsAsync(forceReLogin: true);
+            Console.WriteLine("Signed in. Retrying the interrupted batch...");
+        },
+        analytics.TrackException);
     foreach (var result in results.Where(r => r.PullRequest?.Merged ?? false))
     {
         mergedBranchNames.Add(result.LocalBranch.FriendlyName);
     }
+}
+}
+catch (Exception ex)
+{
+    ReportGithubFailure(ex);
+    analytics.Flush();
+    return;
 }
 
 WriteProgress($"\rProgress: {branchesToEvaluate.Length}/{branchesToEvaluate.Length}");
@@ -386,6 +429,15 @@ void WriteProgress(string message)
     {
         Console.WriteLine(message);
     }
+}
+
+void ReportGithubFailure(Exception ex)
+{
+    var status = ex is Octokit.ApiException api ? $" (HTTP {(int)api.StatusCode})" : string.Empty;
+    Console.WriteLine($"\nGitHub operation failed{status}: {ex.Message}");
+    Console.WriteLine("Run gprune --login to sign in again. For 403/404 errors, check repository access and organization authorization; network errors may be retried later.");
+    analytics.TrackException(ex);
+    Environment.ExitCode = 1;
 }
 
 PruneSelection ParsePruneSelection(string value)

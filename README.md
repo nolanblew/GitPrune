@@ -59,6 +59,12 @@ gprune [Git Directory] [-i]
  - (Optional) `[Git Directory]`: This is the directory that contains the `git` repo you want to compare against. If not provided, your current working directory will be used
  - (Optional) `[-i]`: Use this to find out which branches _would_ be deleted without having the ability to delete them. Note: You will _always_ be prompted if you want to delete the local branches if this is not used. This will just not allow you to actually delete any branches.
 
+#### Authentication
+
+Run `gprune --login` (or `gprune --reauth`) to replace your saved credentials through browser sign-in. Run `gprune --logout` to remove the locally saved token; this does not revoke authorization on GitHub. These commands work outside a repository and exit without pruning.
+
+If GitHub rejects a token with HTTP 401 during a scan, GitPrune opens browser sign-in once and retries the interrupted batch. If sign-in or the retry fails, it logs the error and exits without deleting anything. HTTP 403/404 access errors do not trigger automatic sign-in. The existing `-r`/`--reset` option remains available.
+
 #### Worktrees
 
 GitPrune shows a branch checked out in a linked worktree as one item, labeled with its worktree path. It always protects both the repository's base worktree and the worktree from which it is run.
