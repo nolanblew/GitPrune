@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 public sealed class GitWorktree
 {
@@ -114,15 +115,25 @@ public static class GitWorktreeManager
 
     public static GitCommandResult Remove(string workingDirectory, string worktreePath, bool force)
     {
+        return RemoveAsync(workingDirectory, worktreePath, force).GetAwaiter().GetResult();
+    }
+
+    public static Task<GitCommandResult> RemoveAsync(string workingDirectory, string worktreePath, bool force)
+    {
         return force
-            ? Run(workingDirectory, "worktree", "remove", "-f", worktreePath)
-            : Run(workingDirectory, "worktree", "remove", worktreePath);
+            ? RunAsync(workingDirectory, "worktree", "remove", "-f", worktreePath)
+            : RunAsync(workingDirectory, "worktree", "remove", worktreePath);
     }
 
     public static GitCommandResult DeleteBranch(string workingDirectory, string branchName)
     {
+        return DeleteBranchAsync(workingDirectory, branchName).GetAwaiter().GetResult();
+    }
+
+    public static Task<GitCommandResult> DeleteBranchAsync(string workingDirectory, string branchName)
+    {
         // GitHub confirmation makes a forced local delete safe even for squash-merged branches.
-        return Run(workingDirectory, "branch", "-D", "--", branchName);
+        return RunAsync(workingDirectory, "branch", "-D", "--", branchName);
     }
 
     public static bool PathsEqual(string firstPath, string secondPath)
@@ -140,6 +151,9 @@ public static class GitWorktreeManager
     }
 
     static GitCommandResult Run(string workingDirectory, params string[] arguments)
+        => RunAsync(workingDirectory, arguments).GetAwaiter().GetResult();
+
+    static async Task<GitCommandResult> RunAsync(string workingDirectory, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -158,9 +172,11 @@ public static class GitWorktreeManager
 
         using var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Unable to start git.");
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        process.WaitForExit();
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        var output = await outputTask;
+        var error = await errorTask;
 
         return new GitCommandResult(process.ExitCode, output, error);
     }

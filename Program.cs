@@ -306,11 +306,31 @@ if (pruneTargets.Length == 0)
     return;
 }
 
-Console.WriteLine("Branches and worktrees associated with merged PRs:");
-foreach (var target in pruneTargets)
+var worktreeTargets = pruneTargets.Where(target => target.Worktree != null).ToArray();
+var branchTargets = pruneTargets.Where(target => target.Worktree == null).ToArray();
+
+Console.WriteLine("Items associated with merged PRs:");
+Console.WriteLine();
+Console.WriteLine($"Worktrees ({worktreeTargets.Length})");
+if (worktreeTargets.Length == 0)
 {
-    var worktreeLabel = target.Worktree == null ? string.Empty : $" (worktree: {target.Worktree.Path})";
-    Console.WriteLine($"\t- {target.Branch.FriendlyName}{worktreeLabel}");
+    Console.WriteLine("  None");
+}
+foreach (var target in worktreeTargets)
+{
+    Console.WriteLine($"  • {target.Branch.FriendlyName}");
+    Console.WriteLine($"    {target.Worktree.Path}");
+}
+
+Console.WriteLine();
+Console.WriteLine($"Branches ({branchTargets.Length})");
+if (branchTargets.Length == 0)
+{
+    Console.WriteLine("  None");
+}
+foreach (var target in branchTargets)
+{
+    Console.WriteLine($"  • {target.Branch.FriendlyName}");
 }
 
 if (isCommitting)
@@ -319,7 +339,7 @@ if (isCommitting)
     Console.WriteLine("Choose what to delete:");
     Console.WriteLine("\t[a] All listed branches and worktrees");
     Console.WriteLine("\t[w] Worktrees only (keep their local branches)");
-    Console.WriteLine("\t[b] Branches only in this worktree (skip linked worktrees)");
+    Console.WriteLine("\t[b] Branches only (skip branches checked out in linked worktrees)");
     Console.Write("a/w/b (default: cancel) >");
 
     var selection = ParsePruneSelection(Console.ReadLine());
@@ -334,12 +354,15 @@ if (isCommitting)
         var deletedWorktrees = new List<string>();
         var failedWorktrees = new List<(string Path, string Error)>();
         var branchTargetsToDelete = new List<PrunableTarget>();
+        var deletionProgress = TerminalProgress.ForConsole();
 
         if (selection is PruneSelection.All or PruneSelection.WorktreesOnly)
         {
-            foreach (var target in pruneTargets.Where(target => target.Worktree != null))
+            Console.WriteLine();
+            for (var i = 0; i < worktreeTargets.Length; i++)
             {
-                if (TryRemoveWorktree(target.Worktree, deletedWorktrees, failedWorktrees)
+                var target = worktreeTargets[i];
+                if (await TryRemoveWorktree(target.Worktree, i, worktreeTargets.Length, deletionProgress, deletedWorktrees, failedWorktrees)
                     && selection == PruneSelection.All)
                 {
                     branchTargetsToDelete.Add(target);
@@ -349,14 +372,25 @@ if (isCommitting)
 
         if (selection is PruneSelection.All or PruneSelection.BranchesOnly)
         {
-            branchTargetsToDelete.AddRange(pruneTargets.Where(target => target.Worktree == null));
+            branchTargetsToDelete.AddRange(branchTargets);
         }
 
-        foreach (var target in branchTargetsToDelete)
+        if (branchTargetsToDelete.Count > 0)
         {
+            Console.WriteLine();
+        }
+        for (var i = 0; i < branchTargetsToDelete.Count; i++)
+        {
+            var target = branchTargetsToDelete[i];
             try
             {
-                var result = GitWorktreeManager.DeleteBranch(workingDirectory, target.Branch.FriendlyName);
+                var result = await deletionProgress.RunAsync(
+                    "Deleting branches",
+                    i,
+                    branchTargetsToDelete.Count,
+                    target.Branch.FriendlyName,
+                    () => GitWorktreeManager.DeleteBranchAsync(workingDirectory, target.Branch.FriendlyName),
+                    result => result.Succeeded);
                 if (result.Succeeded)
                 {
                     analytics.TrackDeleteBranch();
@@ -451,14 +485,23 @@ PruneSelection ParsePruneSelection(string value)
     };
 }
 
-bool TryRemoveWorktree(
+async Task<bool> TryRemoveWorktree(
     GitWorktree worktree,
+    int completed,
+    int total,
+    TerminalProgress progress,
     List<string> deletedWorktrees,
     List<(string Path, string Error)> failedWorktrees)
 {
     try
     {
-        var result = GitWorktreeManager.Remove(workingDirectory, worktree.Path, settings.AlwaysForceWorktreeDeletion);
+        var result = await progress.RunAsync(
+            settings.AlwaysForceWorktreeDeletion ? "Force-removing worktrees" : "Removing worktrees",
+            completed,
+            total,
+            worktree.Path,
+            () => GitWorktreeManager.RemoveAsync(workingDirectory, worktree.Path, settings.AlwaysForceWorktreeDeletion),
+            result => result.Succeeded);
         if (result.Succeeded)
         {
             analytics.TrackDeleteWorktree();
@@ -481,7 +524,13 @@ bool TryRemoveWorktree(
             return false;
         }
 
-        var forcedResult = GitWorktreeManager.Remove(workingDirectory, worktree.Path, force: true);
+        var forcedResult = await progress.RunAsync(
+            "Retrying with -f",
+            completed,
+            total,
+            worktree.Path,
+            () => GitWorktreeManager.RemoveAsync(workingDirectory, worktree.Path, force: true),
+            result => result.Succeeded);
         if (!forcedResult.Succeeded)
         {
             failedWorktrees.Add((worktree.Path, GetGitError(forcedResult)));
