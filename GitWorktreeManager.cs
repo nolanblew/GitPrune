@@ -39,7 +39,7 @@ public static class GitWorktreeManager
 
     public static IReadOnlyList<GitWorktree> List(string workingDirectory)
     {
-        var result = Run(workingDirectory, "worktree", "list", "--porcelain");
+        var result = Run(workingDirectory, "worktree", "list", "--porcelain", "-z");
         if (!result.Succeeded)
         {
             throw new InvalidOperationException($"Unable to list git worktrees: {GetError(result)}");
@@ -63,7 +63,11 @@ public static class GitWorktreeManager
             branchName = null;
         }
 
-        foreach (var line in (output ?? string.Empty).Replace("\r\n", "\n").Split('\n'))
+        output ??= string.Empty;
+        var lines = output.Contains('\0')
+            ? output.Split('\0')
+            : output.Replace("\r\n", "\n").Split('\n');
+        foreach (var line in lines)
         {
             if (string.IsNullOrWhiteSpace(line))
             {

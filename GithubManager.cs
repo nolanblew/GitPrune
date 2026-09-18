@@ -109,16 +109,18 @@ public class GithubManager
         const string callbackPath = "authorize";
         var callbackPort = BrowserHelper.GetRandomUnusedPort();
         var redirectUri = new Uri($"http://127.0.0.1:{callbackPort}/{callbackPath}");
+        var state = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
 
         var oauthUrl = _client.Oauth.GetGitHubLoginUrl(
             new OauthLoginRequest(Secrets.ClientId)
             {
                 RedirectUri = redirectUri,
+                State = state,
                 Scopes = { "repo", "read:org", "read:user" },
             });
 
         var browser = new BrowserHelper(callbackPath, callbackPort);
-        var code = await browser.GetAuthTokenAsync(oauthUrl.AbsoluteUri);
+        var code = await browser.GetAuthTokenAsync(oauthUrl.AbsoluteUri, state);
 
         if (string.IsNullOrWhiteSpace(code))
         {

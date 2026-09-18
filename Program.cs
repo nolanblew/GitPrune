@@ -6,6 +6,24 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
+if (args.Any(a => a is "-h" or "--help"))
+{
+    Console.WriteLine(CommandLine.Help);
+    return;
+}
+
+string workingDirectory;
+try
+{
+    workingDirectory = CommandLine.GetRepositoryDirectory(args);
+}
+catch (ArgumentException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    Environment.ExitCode = 1;
+    return;
+}
+
 bool isCommitting = !args.Contains("-i");
 
 const int _BULK_GITHUB_REQUESTS = 5;
@@ -81,7 +99,7 @@ if (args.Contains("-r") || args.Contains("--reset"))
     Console.WriteLine("Are you sure you want to clear the global config? You'll have to login again. (y/N)");
     Console.Write(">> ");
     var input = Console.ReadLine();
-    if (input.ToLower() == "y")
+    if (IsYes(input))
     {
         // Delete the config file
         try {
@@ -109,7 +127,8 @@ try
     {
         Console.WriteLine("Update available. Would you like to update?");
         Console.Write("Y/n >");
-        if (Console.ReadLine().ToLower().Trim() != "n")
+        var updateResponse = Console.ReadLine();
+        if (updateResponse != null && updateResponse.Trim().ToLowerInvariant() != "n")
         {
             Console.WriteLine();
             Console.WriteLine("Updating... Please wait");
@@ -135,12 +154,7 @@ catch (Exception ex) {
     analytics.Flush();
 }
 
-int cursorRow = -1;
 
-var workingDirectory = Directory.GetCurrentDirectory();
-if (args.Length > 0 && Directory.Exists(args[0])) {
-    workingDirectory = args[0];
-}
 
 Console.WriteLine("Finding Branches to Prune...");
 
@@ -207,7 +221,8 @@ catch (Exception ex)
 }
 
 var localBranches = repo.Branches
-    .Where(b => !b.IsRemote && !_BRANCHES_TO_EXCLUDE.Contains(b.FriendlyName))
+    .Where(b => !b.IsRemote && !_BRANCHES_TO_EXCLUDE.Contains(b.FriendlyName)
+        && !(settings.BranchesToExclude ?? Array.Empty<string>()).Contains(b.FriendlyName))
     .ToArray();
 
 var worktrees = Array.Empty<GitWorktree>();
@@ -219,6 +234,7 @@ try
 }
 catch (Exception ex)
 {
+    worktrees = Array.Empty<GitWorktree>();
     Console.WriteLine($"Unable to inspect worktrees. Only ordinary branch pruning will be available. Error: {ex.Message}");
     analytics.TrackException(ex);
 }
@@ -271,7 +287,8 @@ for (int i = 0; i < branchesToEvaluate.Length; i += _BULK_GITHUB_REQUESTS)
             Console.WriteLine("Signed in. Retrying the interrupted batch...");
         },
         analytics.TrackException);
-    foreach (var result in results.Where(r => r.PullRequest?.Merged ?? false))
+    foreach (var result in results.Where(r => PruneEligibility.MatchesMergedHead(
+        r.LocalBranch.Tip?.Sha, r.PullRequest?.Head?.Sha, r.PullRequest?.Merged ?? false)))
     {
         mergedBranchNames.Add(result.LocalBranch.FriendlyName);
     }
@@ -441,6 +458,8 @@ if (isCommitting)
             foreach (var failedBranch in failedBranches)
                 Console.WriteLine($"\t- {failedBranch.Name}: {failedBranch.Error}");
         }
+        if (failedBranches.Count > 0 || failedWorktrees.Count > 0)
+            Environment.ExitCode = 1;
     }
 }
 
@@ -448,21 +467,10 @@ analytics.Flush();
 
 void WriteProgress(string message)
 {
-    try
-    {
-        if (cursorRow == -1) cursorRow = Console.CursorTop;
-        Console.SetCursorPosition(0, cursorRow);
-
-        // Clear the current line
-        Console.Write(new string(' ', Console.LargestWindowWidth));
-        Console.SetCursorPosition(0, cursorRow);
-
-        Console.Write(message);
-    }
-    catch
-    {
-        Console.WriteLine(message);
-    }
+    if (Console.IsOutputRedirected || Environment.GetEnvironmentVariable("TERM") == "dumb")
+        Console.WriteLine(message.TrimStart('\r'));
+    else
+        Console.Write($"\r\u001b[2K{message.TrimStart('\r')}");
 }
 
 void ReportGithubFailure(Exception ex)
@@ -509,7 +517,8 @@ async Task<bool> TryRemoveWorktree(
             return true;
         }
 
-        var error = GetGitError(result);
+        var error = $"git worktree remove exited with code {result.ExitCode}: {GetGitError(result)}";
+        analytics.TrackException(new InvalidOperationException($"Unable to remove worktree '{worktree.Path}': {error}"));
         if (settings.AlwaysForceWorktreeDeletion)
         {
             failedWorktrees.Add((worktree.Path, error));
@@ -533,6 +542,7 @@ async Task<bool> TryRemoveWorktree(
             result => result.Succeeded);
         if (!forcedResult.Succeeded)
         {
+            analytics.TrackException(new InvalidOperationException($"Unable to force-remove worktree '{worktree.Path}' (exit {forcedResult.ExitCode}): {GetGitError(forcedResult)}"));
             failedWorktrees.Add((worktree.Path, GetGitError(forcedResult)));
             return false;
         }

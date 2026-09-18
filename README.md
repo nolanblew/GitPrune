@@ -56,6 +56,8 @@ gprune [Git Directory] [-i]
 ```
 
 #### Arguments
+Run `gprune --help` (or `-h`) for full usage, deletion choices, authentication commands, and examples. Help works offline and outside a repository. Use `gprune --version` (or `-v`) to check the installed version.
+
  - (Optional) `[Git Directory]`: This is the directory that contains the `git` repo you want to compare against. If not provided, your current working directory will be used
  - (Optional) `[-i]`: Use this to find out which branches _would_ be deleted without having the ability to delete them. Note: You will _always_ be prompted if you want to delete the local branches if this is not used. This will just not allow you to actually delete any branches.
 
@@ -68,6 +70,10 @@ If GitHub rejects a token with HTTP 401 during a scan, GitPrune opens browser si
 #### Worktrees
 
 GitPrune shows a branch checked out in a linked worktree as one item, labeled with its worktree path. It always protects both the repository's base worktree and the worktree from which it is run.
+
+Results are grouped under Worktrees and Branches. Deletion shows a live spinner, item progress, and elapsed time; redirected output uses stable log lines. A candidate's local tip must match the merged PR's head commit, so new commits on reused branch names are protected. `BranchesToExclude` in the repository configuration adds protected names to the built-in exclusions.
+
+Failures are logged and processing continues; any deletion failures cause a nonzero exit status. Force removal can discard uncommitted changes and untracked files, so review worktrees before confirming it.
 
 When pruning, choose one of these scopes:
 

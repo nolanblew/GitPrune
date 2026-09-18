@@ -45,7 +45,8 @@ public class GitWorktreeManagerTests
     public void Remove_RequiresForceForAnUntrackedFileThenRemovesTheWorktree()
     {
         var repositoryPath = Path.Combine(Path.GetTempPath(), $"GitPruneTests-{Guid.NewGuid():N}");
-        var worktreePath = Path.Combine(repositoryPath, "feature-worktree");
+        var worktreePath = Path.Combine(repositoryPath, OperatingSystem.IsWindows()
+            ? "feature-worktree" : "feature\tworktree");
 
         try
         {
@@ -59,8 +60,12 @@ public class GitWorktreeManagerTests
             RunGit(repositoryPath, "worktree", "add", "-b", "feature/worktree-prune", worktreePath);
             File.WriteAllText(Path.Combine(worktreePath, "untracked.txt"), "requires force");
 
-            var regularRemoval = GitWorktreeManager.Remove(repositoryPath, worktreePath, force: false);
-            var forcedRemoval = GitWorktreeManager.Remove(repositoryPath, worktreePath, force: true);
+            var listedWorktree = Assert.Single(GitWorktreeManager.List(repositoryPath),
+                w => w.BranchName == "feature/worktree-prune");
+            Assert.Equal(Path.GetFileName(worktreePath), Path.GetFileName(listedWorktree.Path));
+
+            var regularRemoval = GitWorktreeManager.Remove(repositoryPath, listedWorktree.Path, force: false);
+            var forcedRemoval = GitWorktreeManager.Remove(repositoryPath, listedWorktree.Path, force: true);
 
             Assert.False(regularRemoval.Succeeded);
             Assert.True(forcedRemoval.Succeeded, forcedRemoval.Error);
