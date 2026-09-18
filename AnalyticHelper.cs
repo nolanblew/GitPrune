@@ -9,6 +9,8 @@ public class AnalyticHelper
     public static class Keys {
         public const string DELETABLE_BRANCHES = "deletable_branches";
         public const string DELETE_BRANCH = "delete_branch";
+        public const string DELETABLE_WORKTREES = "deletable_worktrees";
+        public const string DELETE_WORKTREE = "delete_worktree";
         public const string UPDATE_AVAILABLE = "update_available";
         public const string UPDATE_APP = "update_app";
         public const string CHECK_VERSION = "check_version";
@@ -39,6 +41,10 @@ public class AnalyticHelper
     public void TrackDeletableBranches(int count) => _TrackEvent(Keys.DELETABLE_BRANCHES, new Dictionary<string, string> { { "count", count.ToString() } });
 
     public void TrackDeleteBranch() => _TrackEvent(Keys.DELETE_BRANCH);
+
+    public void TrackDeletableWorktrees(int count) => _TrackEvent(Keys.DELETABLE_WORKTREES, new Dictionary<string, string> { { "count", count.ToString() } });
+
+    public void TrackDeleteWorktree() => _TrackEvent(Keys.DELETE_WORKTREE);
 
     public void TrackUpdateAvailable(bool choseToUpdate) => _TrackEvent(Keys.UPDATE_AVAILABLE, new Dictionary<string, string> { { "chose_to_update", choseToUpdate.ToString() } });
 

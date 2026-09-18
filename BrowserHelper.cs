@@ -8,11 +8,20 @@ using Microsoft.AspNetCore.Builder;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
+using System.Net;
+using System.Net.Sockets;
 
 // https://brockallen.com/2016/09/24/process-start-for-urls-on-net-core/
 // Kestrel Server help from Gary Archer https://stackoverflow.com/a/67821497/2272235
 public class BrowserHelper
 {
+    public static int GetRandomUnusedPort()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        return ((IPEndPoint)listener.LocalEndpoint).Port;
+    }
+
     public static Process OpenBrowser(string url)
     {
         try
@@ -51,9 +60,9 @@ public class BrowserHelper
         _path = path;
     }
 
-    public async Task<string> GetAuthTokenAsync(string initialUrl)
+    public async Task<string> GetAuthTokenAsync(string initialUrl, string expectedState = null)
     {
-        await using var listener = new LoopbackHttpListener(Port, _path);
+        await using var listener = new LoopbackHttpListener(Port, _path, expectedState);
 
         var browserProcess = BrowserHelper.OpenBrowser(initialUrl);
 
@@ -65,7 +74,7 @@ public class BrowserHelper
                 throw new Exception("Unknown error: Empty response");
             }
 
-            browserProcess.Close();
+            browserProcess?.Close();
 
             return result;
         }
@@ -85,15 +94,19 @@ public class LoopbackHttpListener : IAsyncDisposable
     const int _DEFAULT_TIMEOUT = 60 * 5; // 5 minutes
 
     IWebHost _host;
-    TaskCompletionSource<string> _tcs = new TaskCompletionSource<string>();
+    readonly TaskCompletionSource<string> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     string _url;
+    readonly PathString _callbackPath;
+    readonly string _expectedState;
 
-    public LoopbackHttpListener(int port, string path = null)
+    public LoopbackHttpListener(int port, string path = null, string expectedState = null)
     {
+        _expectedState = expectedState;
         path = path ?? string.Empty;
         if (path.StartsWith("/")) { path = path.Substring(1); }
+        _callbackPath = string.IsNullOrWhiteSpace(path) ? PathString.Empty : new PathString("/" + path);
 
-        _url = $"http://127.0.0.1:{port}/{path}";
+        _url = $"http://127.0.0.1:{port}";
 
         _host = new WebHostBuilder()
             .UseKestrel()
@@ -114,9 +127,9 @@ public class LoopbackHttpListener : IAsyncDisposable
     {
         builder.Run(async context =>
         {
-            if (context.Request.Method == "GET")
+            if (context.Request.Method == "GET" && IsExpectedCallbackPath(context.Request.Path))
             {
-                SetResult(context.Request.QueryString.Value, context);
+                await SetResult(context.Request.QueryString.Value, context);
             }
             else
             {
@@ -128,11 +141,29 @@ public class LoopbackHttpListener : IAsyncDisposable
         });
     }
 
-    void SetResult(string value, HttpContext context)
+    bool IsExpectedCallbackPath(PathString requestPath)
+        => _callbackPath == PathString.Empty || requestPath.Equals(_callbackPath, StringComparison.OrdinalIgnoreCase);
+
+    async Task SetResult(string value, HttpContext context)
     {
+        context.Response.ContentType = "text/html";
         try
         {
             var queryStrings = HttpUtility.ParseQueryString(value);
+
+            if (_expectedState != null && !string.Equals(queryStrings["state"], _expectedState, StringComparison.Ordinal))
+            {
+                context.Response.StatusCode = 400;
+                await context.Response.WriteAsync("Invalid sign-in state. Return to the browser sign-in started by GitPrune.");
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(queryStrings["error"]))
+            {
+                await context.Response.WriteAsync("Sign-in was declined. You can return to GitPrune.");
+                _tcs.TrySetException(new InvalidOperationException("GitHub sign-in was declined. Run gprune --login to try again."));
+                return;
+            }
 
             var code = queryStrings["code"];
 
@@ -141,38 +172,17 @@ public class LoopbackHttpListener : IAsyncDisposable
                 return; // This isn't our call
             }
 
+            await context.Response.WriteAsync("<h2>You can now return to the application.</h2>");
             _tcs.TrySetResult(code);
         }
         catch
         {
             return; // This isn't our call
         }
-
-
-        try
-        {
-            context.Response.StatusCode = 200;
-            context.Response.ContentType = "text/html";
-            context.Response.WriteAsync("<h2>You can now return to the application.</h2>");
-            context.Response.Body.Flush();
-        }
-        catch
-        {
-            context.Response.StatusCode = 400;
-            context.Response.ContentType = "text/html";
-            context.Response.WriteAsync("<h2>Invalid Request</h2>");
-            context.Response.Body.Flush();
-        }
     }
 
     public Task<string> WaitForCallbackAsync(int timeoutInSeconds = _DEFAULT_TIMEOUT)
     {
-        Task.Run(async () =>
-        {
-            await Task.Delay(timeoutInSeconds * 1000);
-            _tcs.SetCanceled();
-        });
-
-        return _tcs.Task;
+        return _tcs.Task.WaitAsync(TimeSpan.FromSeconds(timeoutInSeconds));
     }
 }

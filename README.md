@@ -2,7 +2,7 @@
 ![example branch parameter](https://github.com/nolanblew/GitPrune/actions/workflows/dotnet.yml/badge.svg?branch=main)
 
 # Git Prune
-This program is intended to be an alternative `prune` method to Git's [prune](https://git-scm.com/docs/git-prune) with the intent of removing local git branches that have already been merged into GitHub (currently only supports GitHub) by querying GitHub's API to look for matching PRs that have been merged.
+This program is intended to be an alternative `prune` method to Git's [prune](https://git-scm.com/docs/git-prune) with the intent of removing local git branches and linked worktrees that have already been merged into GitHub (currently only supports GitHub) by querying GitHub's API to look for matching PRs that have been merged.
 
 The key advantage of this is that it will work even when `Squash and Merge` is the default merge-style to a branch - something that Git's `prune` functionality cannot handle as the HEAD is not present in the base branch.
 
@@ -56,8 +56,38 @@ gprune [Git Directory] [-i]
 ```
 
 #### Arguments
+Run `gprune --help` (or `-h`) for full usage, deletion choices, authentication commands, and examples. Help works offline and outside a repository. Use `gprune --version` (or `-v`) to check the installed version.
+
  - (Optional) `[Git Directory]`: This is the directory that contains the `git` repo you want to compare against. If not provided, your current working directory will be used
  - (Optional) `[-i]`: Use this to find out which branches _would_ be deleted without having the ability to delete them. Note: You will _always_ be prompted if you want to delete the local branches if this is not used. This will just not allow you to actually delete any branches.
+
+#### Authentication
+
+Run `gprune --login` (or `gprune --reauth`) to replace your saved credentials through browser sign-in. Run `gprune --logout` to remove the locally saved token; this does not revoke authorization on GitHub. These commands work outside a repository and exit without pruning.
+
+If GitHub rejects a token with HTTP 401 during a scan, GitPrune opens browser sign-in once and retries the interrupted batch. If sign-in or the retry fails, it logs the error and exits without deleting anything. HTTP 403/404 access errors do not trigger automatic sign-in. The existing `-r`/`--reset` option remains available.
+
+#### Worktrees
+
+GitPrune shows a branch checked out in a linked worktree as one item, labeled with its worktree path. It always protects both the repository's base worktree and the worktree from which it is run.
+
+Results are grouped under Worktrees and Branches. Deletion shows a live spinner, item progress, and elapsed time; redirected output uses stable log lines. A candidate's local tip must match the merged PR's head commit, so new commits on reused branch names are protected. `BranchesToExclude` in the repository configuration adds protected names to the built-in exclusions.
+
+Failures are logged and processing continues; any deletion failures cause a nonzero exit status. Force removal can discard uncommitted changes and untracked files, so review worktrees before confirming it.
+
+When pruning, choose one of these scopes:
+
+ - `a`: delete all listed branches and worktrees. A successfully removed worktree's branch is also deleted.
+ - `w`: delete worktrees only and retain their local branches.
+ - `b`: prune ordinary local branches only, leaving every linked worktree in place.
+
+If Git refuses to remove a worktree, GitPrune offers to retry with `-f`. After a successful forced retry, it can save this repository setting in `.git/prune_config.json` (shared by every worktree):
+
+```json
+{
+  "AlwaysForceWorktreeDeletion": true
+}
+```
 
 ## Downloading
 You can find the latest packaged version in the Releases section. Tagged release workflows also upload the packaged archives plus install scripts as GitHub Actions artifacts and sync them to Azure Blob Storage for the one-line installers above.
@@ -74,6 +104,7 @@ Note: Local publishing helpers are available as both `publish.bat` and `publish.
 1. Clone the repo
 0. Add the `Secrets` class that implements `ISecrets` (more info below)
 0. Build/Run!
+0. Run the unit tests with `dotnet test GitPrune.Tests/GitPrune.Tests.csproj`
 0. Publish to build distributions for Windows, Mac, and Linux
 
 ## Secrets

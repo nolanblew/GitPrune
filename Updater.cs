@@ -1,6 +1,7 @@
 using System.Text;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using Azure.Data.Tables;
 using System;
 using System.Linq;
@@ -38,7 +39,20 @@ namespace GitPrune
                 .GetTableClient("gitprune");
         }
 
-        public Version AppVersion => GetType().Assembly.GetName().Version;
+        public Version AppVersion
+        {
+            get
+            {
+                var informationalVersion = typeof(Updater).Assembly
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                    ?.InformationalVersion;
+                var versionText = informationalVersion?.Split('+', 2)[0];
+
+                return Version.TryParse(versionText, out var version)
+                    ? version
+                    : typeof(Updater).Assembly.GetName().Version;
+            }
+        }
 
         // Cloud Table Storage
         private TableClient _tableClient;

@@ -17,8 +17,8 @@ fi
 
 echo "Building publish version $VERSION"
 
-dotnet publish -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="$VERSION" $BETA -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
-dotnet publish -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="$VERSION" $BETA -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
-dotnet publish -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="$VERSION" $BETA -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish GitPrune.csproj -r win-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="$VERSION" $BETA -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish GitPrune.csproj -r linux-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="$VERSION" $BETA -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish GitPrune.csproj -r osx-x64 --configuration Release --self-contained true -p:PublishSingleFile=true -p:Version="$VERSION" $BETA -p:IncludeAllContentForSelfExtract=true -p:IncludeNativeLibrariesForSelfExtract=true
 
 echo "Done!"
